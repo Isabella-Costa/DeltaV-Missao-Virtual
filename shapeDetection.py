@@ -3,7 +3,7 @@ import numpy as np
 
 class ShapeDetection:
     def __init__(self, epsilon_factor=0.02, toleracia_regular =0.15):
-        self.epsilon_factor = epsilon_factor
+        self.epsilon_factor = epsilon_factor # epsilon dinamico para adaptar de acordo com a altura do drone
         self.toleracia_regular = toleracia_regular 
         self.font = cv.FONT_HERSHEY_DUPLEX
         self.font_scale = 0.7
@@ -34,6 +34,7 @@ class ShapeDetection:
                 return "Pentagono"
             else:
                 return "Casa"
+            
         elif num_vertices == 6:
             return "Hexagono"
         elif num_vertices == 10:
@@ -47,21 +48,23 @@ class ShapeDetection:
         
     def detecta_contorno(self, frame):
         shapes_detectados = []
-        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        # THRESH_BINARY_INV transforma o fundo em preto e as figuras em branco
-        thresh = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2)
-
-        contours, _ = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) # Converte para escala cinza
+        thresh = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2) #binarização
+        # cv.ADAPTIVE_THRESH_GAUSSIAN_C : o valor limite é uma soma ponderada gaussiana dos valores de vizinhança menos a constante C
+        # cv.THRESH_BINARY_INV 
+        
+        contours, _ = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE) 
 
         for contour in contours:
-            # Filtro por área mínima para remover ruído
             if cv.contourArea(contour) < self.min_area:
                 continue
-
+               
+            #aproximação do contorno
             epsilon = self.epsilon_factor * cv.arcLength(contour, True)
             approx = cv.approxPolyDP(contour, epsilon, True)
             label = self._get_shape_label(approx)
 
+            # pega os momentos da forma dectada
             if label:
                 M = cv.moments(approx)
                 if M["m00"] != 0:
