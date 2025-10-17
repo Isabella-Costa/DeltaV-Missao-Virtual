@@ -2,9 +2,10 @@ import cv2 as cv
 import numpy as np
 
 class ShapeDetection:
-    def __init__(self, epsilon_factor=0.02, toleracia_regular =0.15):
+    def __init__(self, epsilon_factor=0.02, toleracia_regular=0.15, min_area=500):
         self.epsilon_factor = epsilon_factor # epsilon dinamico para adaptar de acordo com a altura do drone
         self.toleracia_regular = toleracia_regular 
+        self.min_area = min_area
         self.font = cv.FONT_HERSHEY_DUPLEX
         self.font_scale = 0.7
         self.font_thickness = 1
@@ -52,7 +53,7 @@ class ShapeDetection:
         thresh = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2) #binarização
         # cv.ADAPTIVE_THRESH_GAUSSIAN_C : o valor limite é uma soma ponderada gaussiana dos valores de vizinhança menos a constante C
         # cv.THRESH_BINARY_INV 
-        
+
         contours, _ = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE) 
 
         for contour in contours:
