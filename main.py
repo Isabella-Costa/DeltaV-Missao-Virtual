@@ -1,66 +1,60 @@
 import cv2
+import time
 
 from cameraCapture import CameraCapture
 from shapeDetection import ShapeDetection
 from baseDetection import BaseDetector 
 
 def main():
-    ALVO_SHAPE = "Estrela" 
+    ALVO_SHAPE = "Casa"
 
     try:
-        camera = CameraCapture(source=0)
+        camera = CameraCapture(source=1) 
     except IOError as e:
         print(e)
         return
 
+    # Inicializa os dois detectores
     shape_detector = ShapeDetection(min_area=800)
     base_detector = BaseDetector() 
 
-    mission_status = 'Alinhado com a base'
-    delivery_start_time = 0
-    
-    print(f"COMEÇOU A missão.  Alvo: {ALVO_SHAPE}. Pressione 'q' para sair.")
+    print(f"Iniciando modo de detecção total. Alvo: {ALVO_SHAPE}. Pressione 'q' para sair.")
 
     while True:
         ret, frame = camera.get_frame()
         if not ret:
             break
 
-        # Centro da visão do drone 
-        center_x = camera.width // 2
-        center_y = camera.height // 2
+        # DETECÇÃO DE FORMAS (ALVO)
+        shapes_detectados = shape_detector.detecta_contorno(frame)
         
+        # DETECÇÃO DA BASE 
+        base_data = base_detector.detect(frame) # Assumindo que o método em BaseDetector é 'detect'
 
-        # ESTADO 1: Procurando a figura-alvo
-        if mission_status == 'Procura Alvo':
-            pass
-        
-        # ESTADO 2: Alinhando sobre o alvo para entregar a carga
-        elif mission_status == 'Alinha com Alvo':
-            pass
-        # ESTADO 3: Simulando a entrega da carga
-        elif mission_status == 'Entrega no Alvo':
-            pass
-        # ESTADO 4: Procurando a base de pouso
-        elif mission_status == 'Retornando a base':
-            pass
-        # ESTADO 5: Alinhando sobre a base para pousar
-        elif mission_status == 'Alinhado com a base':
-            pass
-        # ESTADO 6: Missão Concluída
-        elif mission_status == 'Fim da missão':
-            pass
+        # VISUALIZAÇÃO 
+        frame_com_desenho = frame.copy()
 
-        # para exibir o status da missão 
-        cv2.putText(frame, f"STATUS: {mission_status}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-        cv2.imshow("Visao do Drone", frame)
+        # Desenha todas as formas encontradas
+        frame_com_desenho = ShapeDetection.draw_contorno(frame_com_desenho, shapes_detectados)
+
+        # Desenha a base, se encontrada
+        if base_data is not None:
+            center = base_data['center']
+            radius = base_data['radius']
+            cv2.circle(frame_com_desenho, center, radius, (255, 0, 0), 3)
+            cv2.circle(frame_com_desenho, center, 5, (0, 0, 255), -1)
+            cv2.putText(frame_com_desenho, "BASE", (center[0] - 30, center[1] - radius - 10), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+
+        # Mostra o resultado final com tudo desenhado
+        cv2.imshow("Visao do Drone - Modo de Teste Total", frame_com_desenho)
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     camera.release()
     cv2.destroyAllWindows()
-    print("Missão encerrada pelo operador.")
+    print("Teste encerrado pelo operador.")
 
 if __name__ == "__main__":
     main()

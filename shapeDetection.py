@@ -63,7 +63,7 @@ class ShapeDetection:
             #aproximação do contorno
             epsilon = self.epsilon_factor * cv.arcLength(contour, True)
             approx = cv.approxPolyDP(contour, epsilon, True)
-            label = self._get_shape_label(approx)
+            label = self.get_shape_label(approx)
 
             # pega os momentos da forma dectada
             if label:

@@ -7,8 +7,8 @@ class BaseDetector:
         self.shape_detector = ShapeDetection(min_area=800) 
         self.color_detector = ColorDetection()
 
-    def detectorBase(self, frame):
-        all_shapes = self.shape_detector.detect(frame)
+    def detect(self, frame):
+        all_shapes = self.shape_detector.detecta_contorno(frame)
 
         for shape in all_shapes:
             if shape['label'] == "Circulo":
