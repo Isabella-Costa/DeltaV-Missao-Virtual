@@ -6,7 +6,8 @@ from shapeDetection import ShapeDetection
 from baseDetection import BaseDetector 
 
 def main():
-    ALVO_SHAPE = "Casa"
+    # CONFIGURAÇÃO DO ALVO
+    ALVO_SHAPE = "Casa" 
 
     try:
         camera = CameraCapture(source=1) 
@@ -18,36 +19,43 @@ def main():
     shape_detector = ShapeDetection(min_area=800)
     base_detector = BaseDetector() 
 
-    print(f"Iniciando modo de detecção total. Alvo: {ALVO_SHAPE}. Pressione 'q' para sair.")
+    print(f"Iniciando modo de detecção de ALVO. Alvo: {ALVO_SHAPE}. Pressione 'q' para sair.")
 
     while True:
         ret, frame = camera.get_frame()
         if not ret:
             break
 
-        # DETECÇÃO DE FORMAS (ALVO)
-        shapes_detectados = shape_detector.detecta_contorno(frame)
+        # DETECÇÃO 
+        todas_as_shapes_detectadas = shape_detector.detecta_contorno(frame)
         
-        # DETECÇÃO DA BASE 
-        base_data = base_detector.detect(frame) # Assumindo que o método em BaseDetector é 'detect'
+        # O detector de base encontra a base
+        base_data = base_detector.detect(frame)
+
+        # FILTRAGEM 
+        alvos_encontrados = []
+        for shape in todas_as_shapes_detectadas:
+            if shape['label'] == ALVO_SHAPE:
+                alvos_encontrados.append(shape)
+                # Imprime no console quando o alvo é encontrado
+                print(f"Alvo '{ALVO_SHAPE}' localizado em {shape['center']}")
 
         # VISUALIZAÇÃO 
         frame_com_desenho = frame.copy()
 
-        # Desenha todas as formas encontradas
-        frame_com_desenho = ShapeDetection.draw_contorno(frame_com_desenho, shapes_detectados)
+        # Desenha APENAS a lista filtrada (alvos_encontrados)
+        frame_com_desenho = ShapeDetection.draw_contorno(frame_com_desenho, alvos_encontrados)
 
         # Desenha a base, se encontrada
         if base_data is not None:
             center = base_data['center']
             radius = base_data['radius']
-            cv2.circle(frame_com_desenho, center, radius, (255, 0, 0), 3)
-            cv2.circle(frame_com_desenho, center, 5, (0, 0, 255), -1)
-            cv2.putText(frame_com_desenho, "BASE", (center[0] - 30, center[1] - radius - 10), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            cv2.circle(frame_com_desenho, center, radius, (255, 0, 0), 3) # Círculo azul
+            cv2.circle(frame_com_desenho, center, 5, (0, 0, 255), -1)     # Centro vermelho
+            cv2.putText(frame_com_desenho, "BASE", (center[0] - 30, center[1] - radius - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
         # Mostra o resultado final com tudo desenhado
-        cv2.imshow("Visao do Drone - Modo de Teste Total", frame_com_desenho)
+        cv2.imshow(f"Visao do Drone - Procurando por [{ALVO_SHAPE}]", frame_com_desenho)
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

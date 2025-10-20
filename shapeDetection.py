@@ -11,15 +11,27 @@ class ShapeDetection:
         self.font_thickness = 1
         self.text_colour = (0, 0, 255) 
 
-    def get_shape_label(self, approx):
+    def get_shape_label(self, approx, contour):
         num_vertices = len(approx)
+        area_contorno = cv.contourArea(contour)
+        hull = cv.convexHull(contour)
+        area_hull = cv.contourArea(hull)
+        
+        # Evita divisão por zero
+        if area_hull == 0:
+            return None
 
-        if num_vertices == 3:
+        # razão entre a área do contorno do objeto e a área do seu invólucro convexo   
+        # Solidez Alta (Próxima de 1) -> O objeto é convexo ou quase convexo. Ele não possui "buracos", "recortes" ou "entradas" significativas
+        # Solidez Baixa (Próxima de 0) ->  O objeto possui concavidades significativas, "braços", "entradas" ou é "vazado". Há muito espaço vazio entre o objeto e seu invólucro convexo.
+        solidez = area_contorno / float(area_hull)
+
+        if num_vertices == 3 and solidez > 0.9 :
             return "Triangulo"
-        elif num_vertices == 4:
+        elif num_vertices == 4 and solidez > 0.9:
             return "Quadrilatero"
         
-        elif num_vertices == 5:
+        elif num_vertices == 5 and solidez > 0.9:
             len_lados = []
             for i in range(5):
                 p1 = approx[i][0]
@@ -36,13 +48,13 @@ class ShapeDetection:
             else:
                 return "Casa"
             
-        elif num_vertices == 6:
+        elif num_vertices == 6 and solidez < 0.75:
             return "Hexagono"
-        elif num_vertices == 10:
+        elif num_vertices == 10 and  solidez < 0.8: 
             return "Estrela"
-        elif num_vertices == 12:
+        elif num_vertices <= 13 and solidez < 0.75:
             return "Cruz"
-        elif num_vertices > 12:
+        elif num_vertices > 13 and solidez > 0.95: 
             return "Circulo"
         else:
             return None
@@ -63,11 +75,11 @@ class ShapeDetection:
             #aproximação do contorno
             epsilon = self.epsilon_factor * cv.arcLength(contour, True)
             approx = cv.approxPolyDP(contour, epsilon, True)
-            label = self.get_shape_label(approx)
+            label = self.get_shape_label(approx, contour)
 
             # pega os momentos da forma dectada
             if label:
-                M = cv.moments(approx)
+                M = cv.moments(contour)
                 if M["m00"] != 0:
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
@@ -77,7 +89,7 @@ class ShapeDetection:
         
         return shapes_detectados
     
-    def draw_contorno(frame, shapes_detectados):
+    def draw_contorno(self, frame, shapes_detectados):
         font = cv.FONT_HERSHEY_DUPLEX
         for shape in shapes_detectados:
             cv.drawContours(frame, [shape['contour']], -1, (0, 255, 0), 3)
