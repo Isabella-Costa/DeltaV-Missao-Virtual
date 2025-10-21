@@ -7,7 +7,7 @@ from baseDetection import BaseDetector
 
 def main():
     # CONFIGURAÇÃO DO ALVO
-    ALVO_SHAPE = "Casa" 
+    ALVO_SHAPE = "Cruz" 
 
     try:
         camera = CameraCapture(source=1) 

@@ -52,7 +52,7 @@ class ShapeDetection:
             return "Hexagono"
         elif num_vertices == 10 and  solidez < 0.8: 
             return "Estrela"
-        elif num_vertices <= 13 and solidez < 0.75:
+        elif num_vertices <= 13 and solidez < 0.5:
             return "Cruz"
         elif num_vertices > 13 and solidez > 0.95: 
             return "Circulo"
@@ -89,7 +89,7 @@ class ShapeDetection:
         
         return shapes_detectados
     
-    def draw_contorno(self, frame, shapes_detectados):
+    def draw_contorno(frame, shapes_detectados):
         font = cv.FONT_HERSHEY_DUPLEX
         for shape in shapes_detectados:
             cv.drawContours(frame, [shape['contour']], -1, (0, 255, 0), 3)
