@@ -1,6 +1,11 @@
 import cv2 as cv
 import numpy as np
 
+
+CANNY_THRESHOLD_1 = 50
+CANNY_THRESHOLD_2 = 150
+
+
 class ShapeDetection:
     def __init__(self, epsilon_factor=0.02, toleracia_regular=0.15, min_area=500):
         self.epsilon_factor = epsilon_factor # epsilon dinamico para adaptar de acordo com a altura do drone
@@ -61,25 +66,36 @@ class ShapeDetection:
         
     def detecta_contorno(self, frame):
         shapes_detectados = []
-        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) # Converte para escala cinza
-        thresh = cv.adaptiveThreshold(gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2) #binarização
-        # cv.ADAPTIVE_THRESH_GAUSSIAN_C : o valor limite é uma soma ponderada gaussiana dos valores de vizinhança menos a constante C
-        # cv.THRESH_BINARY_INV 
+        # Pré-processamento
+        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        blurred = cv.GaussianBlur(gray, (5, 5), 0)
+        edges = cv.Canny(blurred, CANNY_THRESHOLD_1, CANNY_THRESHOLD_2)
 
-        contours, _ = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE) 
+        # Busca de contornos
+        contours, hierarchy = cv.findContours(edges.copy(), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+        
+        # Hierarquia dos contornos
+        if hierarchy is None:
+            return None
+        
+ 
+        for i, c in enumerate(contours):
+            area = cv.contourArea(c)
+            if area < self.min_area:
+                    continue
+            
+            if hierarchy[0][i][3] != -1 and hierarchy[0][i][2] == -1:
+                peri = cv.arcLength(c, True)
+                approx = cv.approxPolyDP(c, 0.04 * peri, True)
 
-        for contour in contours:
-            if cv.contourArea(contour) < self.min_area:
-                continue
-               
-            #aproximação do contorno
-            epsilon = self.epsilon_factor * cv.arcLength(contour, True)
-            approx = cv.approxPolyDP(contour, epsilon, True)
-            label = self.get_shape_label(approx, contour)
+            # aproximação do contorno
+            epsilon = self.epsilon_factor * cv.arcLength(c, True)
+            approx = cv.approxPolyDP(c, epsilon, True)
+            label = self.get_shape_label(approx, c)
 
             # pega os momentos da forma dectada
             if label:
-                M = cv.moments(contour)
+                M = cv.moments(c)
                 if M["m00"] != 0:
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
