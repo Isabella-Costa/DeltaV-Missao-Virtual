@@ -17,10 +17,15 @@ def main():
 
         frame_copia = frame.copy()
 
-        quadrados_internos, triangulos_internos, bordas_canny, img_clahe = detc.detectar_formas(frame_copia)
+        quadrados_internos, triangulos_internos, pentagonos_regulares, pentagonos_irregulares, estrela, cruz, circulo, bordas_canny, img_clahe = detc.detectar_formas(frame_copia)
 
         detc.desenhar(frame_copia, quadrados_internos)
         detc.desenhar_triangulos(frame_copia, triangulos_internos)
+        detc.desenhar_pentagonos_reg(frame_copia, pentagonos_regulares)
+        detc.desenhar_pentagonos_irr(frame_copia, pentagonos_irregulares)
+        detc.desenhar_estrela(frame_copia, estrela)
+        detc.desenhar_cruz(frame_copia, cruz)
+        #detc.desenhar_circulo(frame_copia, circulo)
         
         #cv2.imshow("thresholding adaptativo", frame_TA)
         cv2.imshow("canny", bordas_canny)

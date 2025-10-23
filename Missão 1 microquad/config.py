@@ -43,4 +43,7 @@ FILTRO_KALMAN = {
 
 SOLIDEZ = {
     "solidez_star": 0.6,
+    "solidez_cross": 0.7,
+    "solidez_circle": 0.85,
+    "circularidade_min": 0.85
 }

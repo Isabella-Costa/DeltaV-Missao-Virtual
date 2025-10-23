@@ -16,6 +16,7 @@ def incializar_kalman():
     kf.processNoiseCov = np.eye(4, dtype=np.float32) * FILTRO_KALMAN["uncertainty_magnitude"]
 
     kf.measurementNoiseCov = np.eye(2, dtype=np.float32) * FILTRO_KALMAN["noise_magnitude"]
+    return kf
     
 
 def detectar_formas(frame):
@@ -45,6 +46,7 @@ def detectar_formas(frame):
             v1 = p1 - p2
             v2 = p3 - p2
             cosang = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+            cosang = np.clip(cosang, -1.0, 1.0)  # Garante que o valor esteja no intervalo válido para arccos
             return np.degrees(np.arccos(cosang))
         
         
@@ -84,14 +86,14 @@ def detectar_formas(frame):
                             # ex: Se não tem pai -> quadrado externo
                             if parent != -1 and child == -1:
                                 quadrados_internos.append((area, approx))
-            elif num_vertices == 3 and area > FILTRAGEM_CONTORNOS["min_area"]:
+            elif num_vertices == 3 and area > FILTRAGEM_CONTORNOS["min_area"]: #triangulo
                  parent = hierarquia[i][3]
                  child = hierarquia[i][2]
 
                  if parent != -1 and child == -1:
                     triangulos_internos.append((area, approx))
             
-            elif num_vertices == 5 and area > FILTRAGEM_CONTORNOS["min_area"]:
+            elif num_vertices == 5 and area > FILTRAGEM_CONTORNOS["min_area"]: #pentagono regular
                 angulos = []
                 for j in range (5):
                       p1 = approx[j][0]
@@ -109,16 +111,29 @@ def detectar_formas(frame):
                                 if FILTRAGEM_CONTORNOS["min_aspect_ratio"] <= espectro_ratio <= FILTRAGEM_CONTORNOS["max_aspect_ratio"]:
                                      pentagonos_regulares.append((area, approx))
                 else:
-                             pentagonos_irregulares.append((area, approx))
-            elif num_vertices == 10:
-                hull = cv2.convexHull(approx)
-                hull_area = cv2.contourArea(hull)
-                
+                             pentagonos_irregulares.append((area, approx)) #pentagono irregular
+           # Estrela
+            if len(cnt) > 20:
+                hull_indices = cv2.convexHull(cnt, returnPoints=False)
+                if hull_indices is not None and len(hull_indices) > 3:
+                    defects = cv2.convexityDefects(cnt, hull_indices)
+
+                    if defects is not None:
+                        num_defects = defects.shape[0]
+            if num_defects == 8:
+                hull_area = cv2.contourArea(cv2.convexHull(cnt))
                 if hull_area > 0:
                     solidez = float(area) / hull_area
 
-                    if solidez < SOLIDEZ["solidez_star"]:
-                        estrela.append((area, approx))
+                    if solidez < SOLIDEZ["solidez_cross"]:
+                        cruz.append((area, cnt))
+                        continue
+            if perimetro > 0:
+                circularidade = (4 * np.pi * area) / (perimetro * perimetro)
+
+                if circularidade > SOLIDEZ["circularidade_min"]:
+                    circulo.append((area, cnt))
+                    continue           
                             
     listas_formas = {
          "quadrados": quadrados_internos,
@@ -130,7 +145,7 @@ def detectar_formas(frame):
          "circulo": circulo,
 
     }
-    return listas_formas, bordas_canny, frame_clahe
+    return quadrados_internos, triangulos_internos, pentagonos_regulares, pentagonos_irregulares, estrela, cruz, circulo, bordas_canny, frame_clahe
 
     
          
@@ -159,8 +174,68 @@ def desenhar_triangulos(frame, triangulos): #Função de desenho dos contornos d
 
           M = cv2.moments(triangulo)
           if M["m00"] != 0:
-               cx = int (M["m10"])/M["m00"]
-               cy = int (M["m01"])/M["m00"]
+               cx = int (M["m10"] /M["m00"])
+               cy = int (M["m01"] / M["m00"])
                cv2.circle(frame, (cx, cy), 5, DESENHO["cor_centro"], -1)
 
+def desenhar_pentagonos_reg (frame, pentagonos):
+     for area, pentagono in pentagonos:
+         cv2.drawContours(frame, [pentagono], -1, (0, 255, 0), 3) 
+         x, y, _, _ = cv2.boundingRect(pentagono)
+         cv2.putText(frame, F"Pentagono regular - area {int (area)}", (x, y - 10), DESENHO["font"], 0.7, (0, 255, 0), 2)
+         M = cv2.moments(pentagono)
+         if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                cv2.circle(frame, (cx, cy), 5, DESENHO["cor_centro"], -1)
+
+def desenhar_pentagonos_irr (frame, pentagonos):
+     for area, pentagono in pentagonos:
+          cv2.drawContours(frame, [pentagono], -1, (255, 0, 255), 3) #Cor magenta em BGR
+
+          x, y, _, _ = cv2.boundingRect(pentagono)
+          cv2.putText(frame, F"Pentagono irregular - area {int (area)}", (x, y - 10), DESENHO["font"], 0.7, (255, 0, 255), 2)
+
+          M = cv2.moments(pentagono)
+          if M["m00"] != 0:
+               cx = int (M["m10"] / M["m00"])
+               cy = int (M["m01"] / M["m00"])
+               cv2.circle(frame, (cx, cy), 5, DESENHO["cor_centro"], -1)
+def desenhar_estrela (frame, estrelas):
+     for area, estrela in estrelas:
+          cv2.drawContours(frame, [estrela], -1, (0, 255, 255), 3) #Cor amarela em BGR
+
+          x, y, _, _ = cv2.boundingRect(estrela)
+          cv2.putText(frame, F"Estrela - area {int (area)}", (x, y - 10), DESENHO["font"], 0.7, (0, 255, 255), 2)
+
+          M = cv2.moments(estrela)
+          if M["m00"] != 0:
+               cx = int (M["m10"] / M["m00"])
+               cy = int (M["m01"] / M["m00"])
+               cv2.circle(frame, (cx, cy), 5, DESENHO["cor_centro"], -1)
+def desenhar_cruz (frame, cruzes):
+     for area, cruz in cruzes:
+         cv2.drawContours(frame, [cruz], -1, (128, 0, 128), 3) 
+         x, y, _, _ = cv2.boundingRect(cruz)
+         cv2.putText(frame, F"Cruz - area {int (area)}", (x, y - 10), DESENHO["font"], 0.7, (128, 0, 128), 2)
+         M = cv2.moments(cruz)
+         if M["m00"] != 0:
+                # --- CORRIGIDO ---
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                cv2.circle(frame, (cx, cy), 5, DESENHO["cor_centro"], -1)
+def desenhar_circulo (frame, circulos):
+     for area, circulo in circulos:
+         # Para círculos, é melhor usar minEnclosingCircle para desenhar
+         (x, y), raio = cv2.minEnclosingCircle(circulo)
+         centro = (int(x), int(y))
+         raio = int(raio)
+         
+         cv2.circle(frame, centro, raio, (0, 128, 128), 3) # Desenha a borda
+         
+         x_texto, y_texto, _, _ = cv2.boundingRect(circulo)
+         cv2.putText(frame, F"Circulo - area {int (area)}", (x_texto, y_texto - 10), DESENHO["font"], 0.7, (0, 128, 128), 2)
+
+         # Usa o 'centro' calculado que já é (int, int)
+         cv2.circle(frame, centro, 5, DESENHO["cor_centro"], -1)
 
