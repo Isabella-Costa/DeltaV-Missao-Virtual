@@ -1,24 +1,27 @@
 import cv2
-from shapeDetection import ShapeDetection
-from colorDetection import ColorDetection
+from .colorDetection import ColorDetection
+
 
 class BaseDetector:
     def __init__(self):
-        self.shape_detector = ShapeDetection(min_area=800) 
         self.color_detector = ColorDetection()
 
-    def detect(self, frame):
-        all_shapes = self.shape_detector.detecta_contorno(frame)
+    def detect(self, all_shapes, frame):
+        if all_shapes is None:
+            return None
 
         for shape in all_shapes:
+            # Procura pelo círculo que foi detectado 
             if shape['label'] == "Circulo":
                 contour = shape['contour']
+                
+                # verificar se é azul
                 if self.color_detector.is_contour_blue(frame, contour):
+                    
                     (x, y), radius = cv2.minEnclosingCircle(contour)
-
                     base = { 'center': (int(x), int(y)), 'radius': int(radius), 'contour': contour}
                     
-                    # Retorna os dados da primeira base válida que encontrar
                     return base
 
+        # Se não encontrou nenhum círculo azul
         return None

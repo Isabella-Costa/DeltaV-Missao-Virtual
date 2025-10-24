@@ -1,13 +1,15 @@
 import cv2
+import numpy as np
 import time
 
-from cameraCapture import CameraCapture
-from shapeDetection import ShapeDetection
-from baseDetection import BaseDetector 
+
+from detectors.cameraCapture import CameraCapture
+from detectors.shapeDetection import ShapeDetector, incializar_kalman
+from detectors.baseDetection import BaseDetector
 
 def main():
-    # CONFIGURAÇÃO DO ALVO
-    ALVO_SHAPE = "Quadrado" 
+    # CONFIGURAÇÃO DO ALVO (do seu código)
+    ALVO_SHAPE = "Cruz" 
 
     try:
         camera = CameraCapture(source=1) 
@@ -15,54 +17,131 @@ def main():
         print(e)
         return
 
-    # Inicializa os dois detectores
-    shape_detector = ShapeDetection(min_area=800)
+    #  Inicializa os detectores e o Kalman 
+    detector = ShapeDetector()      
     base_detector = BaseDetector() 
+    kalman_filter = incializar_kalman()
+    kalman_ativo = False
+    
+    window_name_normal = f"Visao do Drone - Procurando por [{ALVO_SHAPE}]"
+    window_name_canny = "Debug Canny"
+    window_name_clahe = "Debug CLAHE"
+    
+    cv2.namedWindow(window_name_normal, cv2.WINDOW_NORMAL)
+    cv2.namedWindow(window_name_canny, cv2.WINDOW_NORMAL)
+    cv2.namedWindow(window_name_clahe, cv2.WINDOW_NORMAL)
 
-    print(f"Iniciando modo de detecção de ALVO. Alvo: {ALVO_SHAPE}. Pressione 'q' para sair.")
+    largura = 800 
+    altura = int(largura * (camera.height / camera.width))
+    
+    dim = (largura, altura) 
+    
+    cv2.resizeWindow(window_name_normal, largura, altura)
+    cv2.resizeWindow(window_name_canny, largura, altura)
+    cv2.resizeWindow(window_name_clahe, largura, altura)
+
+
+    print(f"Iniciando modo de detecção. Alvo: {ALVO_SHAPE}. Pressione 'q' para sair.")
 
     while True:
-        ret, frame = camera.get_frame()
+        # Frame original
+        ret, frame_original = camera.get_frame() 
         if not ret:
+            print("Frame não capturado ou vídeo terminou.")
             break
-
-        # DETECÇÃO 
-        todas_as_shapes_detectadas = shape_detector.detecta_contorno(frame)
         
-        # O detector de base encontra a base
-        base_data = base_detector.detect(frame)
+        # REDIMENSIONA O FRAME 
+        frame = cv2.resize(frame_original, dim, interpolation=cv2.INTER_AREA)
+        todos_shapes_detectados, bordas_canny, frame_clahe = detector.detect(frame)
+        
+        # Encontra a base
+        base_data = base_detector.detect(todos_shapes_detectados, frame)
 
         # FILTRAGEM 
         alvos_encontrados = []
-        for shape in todas_as_shapes_detectadas:
+        for shape in todos_shapes_detectados:
             if shape['label'] == ALVO_SHAPE:
                 alvos_encontrados.append(shape)
-                # Imprime no console quando o alvo é encontrado
+        
+        if alvos_encontrados:
+             print(f"Alvo '{ALVO_SHAPE}' localizado em {alvos_encontrados[0]['center']}")
+
+
+        # RASTREAMENTO (KALMAN) 
+        predicted_center = None
+        if len(alvos_encontrados) > 0:
+            alvo_principal = alvos_encontrados[0] 
+            center_np = np.array([alvo_principal['center'][0], alvo_principal['center'][1]], np.float32)
+            kalman_filter.correct(center_np)
+            kalman_ativo = True
+        
+        if kalman_ativo:
+            prediction = kalman_filter.predict()
+            predicted_center = (int(prediction[0][0]), int(prediction[1][0]))
+
+
+        #  VISUALIZAÇÃO 
+        frame_com_desenho = frame.copy() 
+
+        # Desenha TODAS as formas detectadas
+        frame_com_desenho = detector.draw(frame_com_desenho, todos_shapes_detectados)
+
+        # FILTRAGEM 
+        alvos_encontrados = []
+        for shape in todos_shapes_detectados:
+            if shape['label'] == ALVO_SHAPE:
+                alvos_encontrados.append(shape)
                 print(f"Alvo '{ALVO_SHAPE}' localizado em {shape['center']}")
+
+        predicted_center = None
+
+        if len(alvos_encontrados) > 0:
+            # Pega o primeiro alvo encontrado para rastrear
+            alvo_principal = alvos_encontrados[0] 
+            
+            # Alvo encontrado, corrige o filtro
+            center_np = np.array([alvo_principal['center'][0], alvo_principal['center'][1]], np.float32)
+            kalman_filter.correct(center_np)
+            kalman_ativo = True
+        
+        if kalman_ativo:
+            # Sempre prevê o próximo passo
+            prediction = kalman_filter.predict()
+            predicted_center = (int(prediction[0][0]), int(prediction[1][0]))
+
 
         # VISUALIZAÇÃO 
         frame_com_desenho = frame.copy()
 
-        # Desenha APENAS a lista filtrada (alvos_encontrados)
-        frame_com_desenho = ShapeDetection.draw_contorno(frame_com_desenho, alvos_encontrados)
+        # Desenha TODAS as formas detectadas 
+        frame_com_desenho = detector.draw(frame_com_desenho, todos_shapes_detectados)
 
-        # Desenha a base, se encontrada
+        # Desenho a base 
         if base_data is not None:
             center = base_data['center']
             radius = base_data['radius']
             cv2.circle(frame_com_desenho, center, radius, (255, 0, 0), 3) # Círculo azul
-            cv2.circle(frame_com_desenho, center, 5, (0, 0, 255), -1)     # Centro vermelho
-            cv2.putText(frame_com_desenho, "BASE", (center[0] - 30, center[1] - radius - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            cv2.circle(frame_com_desenho, center, 5, (0, 0, 255), -1)    # Centro real (vermelho)
+            cv2.putText(frame_com_desenho, "BASE", (center[0] - 30, center[1] - radius - 10), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+        
+        # Kalman 
+        if predicted_center:
+            # Centro predito (verde)
+            cv2.circle(frame_com_desenho, predicted_center, 10, (0, 255, 0), 2)
+            cv2.putText(frame_com_desenho, f"{ALVO_SHAPE} Predito (Kalman)", (predicted_center[0] + 15, predicted_center[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        # Mostra o resultado final com tudo desenhado
+        # Mostra os resultados
         cv2.imshow(f"Visao do Drone - Procurando por [{ALVO_SHAPE}]", frame_com_desenho)
+        cv2.imshow("Debug Canny", bordas_canny)
+        cv2.imshow("Debug CLAHE", frame_clahe)
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     camera.release()
     cv2.destroyAllWindows()
-    print("Teste encerrado pelo operador.")
+    print("Detecção encerrada.")
 
 if __name__ == "__main__":
     main()
