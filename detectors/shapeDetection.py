@@ -25,7 +25,7 @@ class ShapeDetector:
         
         # Filtragem
         self.min_area = FILTRAGEM_CONTORNOS.get("min_area", 500)
-        self.epsilon_factor = FILTRAGEM_CONTORNOS.get("contour_epsilon", 0.02)
+        self.epsilon_factor = FILTRAGEM_CONTORNOS.get("contour_epsilon", 0.009)
         self.min_aspect_ratio = FILTRAGEM_CONTORNOS.get("min_aspect_ratio", 0.8)
         self.max_aspect_ratio = FILTRAGEM_CONTORNOS.get("max_aspect_ratio", 1.2)
 
@@ -36,9 +36,11 @@ class ShapeDetector:
         self.pent_angle_max = ANGULACAO_PENTAGONO_REG.get("upper_limit", 116)
 
         #  Solidez
-        self.solidez_cross = SOLIDEZ.get("solidez_cross", 0.6)
+        self.solidez_star_min = SOLIDEZ.get("star_min", 0.45)
+        self.solidez_star_max = SOLIDEZ.get("star_max", 0.6)
+        self.solidez_cross_min = SOLIDEZ.get("cross_min", 0.55)
+        self.solidez_cross_max = SOLIDEZ.get("cross_max", 0.7)
         self.circularity_min = SOLIDEZ.get("circularidade_min", 0.85)
-        self.solidez_star = SOLIDEZ.get("star", 0.8)
 
         # Desenho
         self.font = DESENHO.get("font", cv2.FONT_HERSHEY_SIMPLEX)
@@ -57,7 +59,7 @@ class ShapeDetector:
             "Circulo": (0, 128, 128)
         }
 
-    def _angulo_cos(self, p1, p2, p3):
+    def angulo_cos(self, p1, p2, p3):
         v1 = p1 - p2
         v2 = p3 - p2
 
@@ -72,113 +74,118 @@ class ShapeDetector:
         return np.degrees(np.arccos(cosang))
 
     def detect(self, frame):
-        # Pré-processamento
-        frame_cinza = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        clahe = cv2.createCLAHE(self.clahe_cliplimit, self.clahe_grid_size)
-        frame_clahe = clahe.apply(frame_cinza)
-        frame_suave = cv2.GaussianBlur(frame_clahe, self.blur_ksize, 0)
-        bordas_canny = cv2.Canny(frame_suave, self.canny_1, self.canny_2)
+            # Pré-processamento
+            frame_cinza = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            clahe = cv2.createCLAHE(self.clahe_cliplimit, self.clahe_grid_size)
+            frame_clahe = clahe.apply(frame_cinza)
+            frame_suave = cv2.GaussianBlur(frame_clahe, self.blur_ksize, 0)
+            bordas_canny = cv2.Canny(frame_suave, self.canny_1, self.canny_2)
 
-        # Encontrar Contornos
-        contornos, hierarquia = cv2.findContours(bordas_canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            # Contornos
+            contornos, hierarquia = cv2.findContours(bordas_canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        shapes_detectados = [] # Lista unificada de formas
+            shapes_detectados = [] # Lista unificada de formas
 
-        if hierarquia is None:
-            return [], bordas_canny, frame_clahe
+            if hierarquia is None:
+                return [], bordas_canny, frame_clahe
 
-        hierarquia = hierarquia[0] # Pega o primeiro nível da hierarquia
-        
-        for i, cnt in enumerate(contornos):
-            area = cv2.contourArea(cnt)
-            if area < self.min_area:
-                continue
-
-            perimetro = cv2.arcLength(cnt, True)
-            epsilon = self.epsilon_factor * perimetro
-            approx = cv2.approxPolyDP(cnt, epsilon, True)
-            num_vertices = len(approx)
-
-            # Calcular o centro 
-            M = cv2.moments(cnt)
-            center = None
-            if M["m00"] != 0:
-                center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-            else:
-                continue # Ignora formas sem área/centro
-
-            parent = hierarquia[i][3]
-            child = hierarquia[i][2]
-
-            shape_data = {'center': center, 'area': area, 'label': 'Desconhecido'}
-
-            # Triangulo            
-            if num_vertices == 3: 
-                if parent != -1 and child == -1: 
-                    shape_data.update({'label': 'Triangulo', 'contour': approx})
-                    shapes_detectados.append(shape_data)
-
-
-            # Quadrado
-            elif num_vertices == 4:  
-                angulos = [self._angulo_cos(approx[j][0], approx[(j+1)%4][0], approx[(j+2)%4][0]) for j in range(4)]
-                if all(self.quad_angle_min <= ang <= self.quad_angle_max for ang in angulos):
-                    rect = cv2.minAreaRect(approx)
-                    (w, h) = rect[1]
-                    espectro_ratio = float(w) / h if h == 0 else (float(w) / h if w > h else float(h) / w)
-                    
-                    if self.min_aspect_ratio <= espectro_ratio <= self.max_aspect_ratio:
-                        if parent != -1 and child == -1: # Quadrado Interno
-                            shape_data.update({'label': 'Quadrilatero', 'contour': approx})
-                            shapes_detectados.append(shape_data)  
-
-            elif num_vertices == 5: # Pentágono e Casa
-                angulos = [self._angulo_cos(approx[j][0], approx[(j+1)%5][0], approx[(j+2)%5][0]) for j in range(5)]
-                if all(self.pent_angle_min <= ang <= self.pent_angle_max for ang in angulos):
-                    shape_data.update({'label': 'Pentagono', 'contour': approx})
-                else:
-                    shape_data.update({'label': 'Casa', 'contour': approx}) 
-                shapes_detectados.append(shape_data)
+            hierarquia = hierarquia[0] # Pega o primeiro nível da hierarquia
             
-            # FORMAS COMPLEXAS 
-            else:
-    
-                if len(cnt) > 20: # Só checa defeitos em contornos complexos
+            for i, cnt in enumerate(contornos):
+                area = cv2.contourArea(cnt)
+                if area < self.min_area:
+                    continue
+
+                perimetro = cv2.arcLength(cnt, True)
+                
+                # Epsilon (precisão) 
+                epsilon = self.epsilon_factor * perimetro 
+                approx = cv2.approxPolyDP(cnt, epsilon, True)
+                num_vertices = len(approx)
+
+                # Calcula o centro 
+                M = cv2.moments(cnt)
+                center = None
+                if M["m00"] != 0:
+                    center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+                else:
+                    continue # Ignora formas sem área/centro
+
+                parent = hierarquia[i][3]
+                child = hierarquia[i][2]
+
+                shape_data = {'center': center, 'area': area, 'label': 'Desconhecido'}
+
+                hull = cv2.convexHull(cnt)
+                hull_area = cv2.contourArea(hull)
+                if hull_area == 0: continue
+                solidez = float(area) / hull_area
+
+                # Concavos -------------------------------------------------------------------------------------------------------------------------------------------------
+                if len(cnt) > 20:
                     hull_indices = cv2.convexHull(cnt, returnPoints=False)
                     if hull_indices is not None and len(hull_indices) > 3:
-                        try: 
+                        try:
                             defects = cv2.convexityDefects(cnt, hull_indices)
                             if defects is not None:
                                 num_defects = defects.shape[0]
-                                hull_area = cv2.contourArea(cv2.convexHull(cnt))
-                                if hull_area == 0: continue # Evita divisão por zero
-                                
-                                solidez = float(area) / hull_area
 
-                                #  Cruz
-                                if num_defects == 8 and solidez < self.solidez_cross:
-                                    shape_data.update({'label': 'Cruz', 'contour': cnt})
-                                    shapes_detectados.append(shape_data)
-                                    continue # Encontrado, pula para o próximo contorno
+                                #print(f"Forma Côncava: Defeitos={num_defects}, Solidez={solidez:.2f}")
 
-                                # Estrela 
-                                elif num_defects == 5 and solidez < self.solidez_star:
-                                    shape_data.update({'label': 'Estrela', 'contour': cnt}) #
-                                    shapes_detectados.append(shape_data) 
-                                    continue # Encontrado
-                        
-                        except cv2.error as e: 
+                                # ESTRELA
+                                if (5 <= num_defects <= 11):
+                                    # ESTRELA
+                                    if self.solidez_star_min < solidez < self.solidez_star_max:
+                                        shape_data.update({'label': 'Estrela', 'contour': cnt})
+                                        shapes_detectados.append(shape_data)
+                                        continue
+
+                                    # CRUZ
+                                    elif  self.solidez_cross_min < solidez < self.solidez_cross_max:
+                                        shape_data.update({'label': 'Cruz', 'contour': cnt})
+                                        shapes_detectados.append(shape_data)
+                                        continue
+
+                        except cv2.error as e:
                             pass # Ignora contornos malformados
 
-                # Círculo 
-                if perimetro > 0:
-                    circularidade = (4 * np.pi * area) / (perimetro * perimetro)
-                    if circularidade > self.circularity_min:
-                        shape_data.update({'label': 'Circulo', 'contour': cnt})
-                        shapes_detectados.append(shape_data)
-                        continue
+                    # Círculo 
+                    if perimetro > 0:
+                        circularidade = (4 * np.pi * area) / (perimetro * perimetro)
+                        if circularidade > self.circularity_min:
+                            shape_data.update({'label': 'Circulo', 'contour': cnt})
+                            shapes_detectados.append(shape_data)
+                            continue
+                # Convexos -------------------------------------------------------------------------------------------------------------------------------------------------
+                else:
+                    # Triangulo              
+                    if num_vertices == 3: 
+                        if parent != -1 and child == -1: 
+                            shape_data.update({'label': 'Triangulo', 'contour': approx})
+                            shapes_detectados.append(shape_data)
 
-        return shapes_detectados, bordas_canny, frame_clahe
+                    # Quadrado
+                    elif num_vertices == 4:  
+                        angulos = [self.angulo_cos(approx[j][0], approx[(j+1)%4][0], approx[(j+2)%4][0]) for j in range(4)]
+                        if all(self.quad_angle_min <= ang <= self.quad_angle_max for ang in angulos):
+                            rect = cv2.minAreaRect(approx)
+                            (w, h) = rect[1]
+                            espectro_ratio = float(w) / h if h == 0 else (float(w) / h if w > h else float(h) / w)
+                            
+                            if self.min_aspect_ratio <= espectro_ratio <= self.max_aspect_ratio:
+                                if parent != -1 and child == -1: # Quadrado Interno
+                                    shape_data.update({'label': 'Quadrilatero', 'contour': approx})
+                                    shapes_detectados.append(shape_data)  
+
+                    elif num_vertices == 5: # Pentágono e Casa
+                        angulos = [self.angulo_cos(approx[j][0], approx[(j+1)%5][0], approx[(j+2)%5][0]) for j in range(5)]
+                        if all(self.pent_angle_min <= ang <= self.pent_angle_max for ang in angulos):
+                            shape_data.update({'label': 'Pentagono', 'contour': approx})
+                        else:
+                            shape_data.update({'label': 'Casa', 'contour': approx}) 
+                    shapes_detectados.append(shape_data)
+
+            return shapes_detectados, bordas_canny, frame_clahe
 
     def draw(self, frame, shapes_detectados):
         for shape in shapes_detectados:

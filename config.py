@@ -9,7 +9,7 @@ PRE_PROCESSAMENTO = {
 
 # Parâmetros de filtragem de contornos
 FILTRAGEM_CONTORNOS = {
-    "contour_epsilon": 0.02,
+    "contour_epsilon": 0.009,
     "min_area": 500,
     "min_aspect_ratio": 0.95,
     "max_aspect_ratio": 1.2
@@ -41,8 +41,16 @@ FILTRO_KALMAN = {
 }
 
 SOLIDEZ = {
-    "solidez_star": 0.6,
-    "solidez_cross": 0.7,
-    "solidez_circle": 0.85,
+    "star_min": 0.45,
+    "star_max": 0.6,
+    "cross_min": 0.6,
+    "cross_max": 0.7,
     "circularidade_min": 0.85
+}
+# Parâmetros de Janela e Visualização
+JANELA_CONFIG = {
+    "LARGURA_RESIZE": 800,
+    "WINDOW_NAME_NORMAL_PREFIX": "Visao do Drone - Procurando por",
+    "WINDOW_NAME_CANNY": "Debug Canny",
+    "WINDOW_NAME_CLAHE": "Debug CLAHE"
 }

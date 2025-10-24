@@ -1,14 +1,14 @@
 import cv2
 import numpy as np
-import time
-
 
 from detectors.cameraCapture import CameraCapture
 from detectors.shapeDetection import ShapeDetector, incializar_kalman
 from detectors.baseDetection import BaseDetector
+from config import JANELA_CONFIG
+
 
 def main():
-    # CONFIGURAÇÃO DO ALVO (do seu código)
+    # CONFIGURAÇÃO DO ALVO 
     ALVO_SHAPE = "Cruz" 
 
     try:
@@ -23,15 +23,17 @@ def main():
     kalman_filter = incializar_kalman()
     kalman_ativo = False
     
-    window_name_normal = f"Visao do Drone - Procurando por [{ALVO_SHAPE}]"
-    window_name_canny = "Debug Canny"
-    window_name_clahe = "Debug CLAHE"
+
+    # Configuração janela
+    window_name_normal = f"{JANELA_CONFIG['WINDOW_NAME_NORMAL_PREFIX']} [{ALVO_SHAPE}]"
+    window_name_canny = JANELA_CONFIG["WINDOW_NAME_CANNY"]
+    window_name_clahe = JANELA_CONFIG["WINDOW_NAME_CLAHE"]
     
     cv2.namedWindow(window_name_normal, cv2.WINDOW_NORMAL)
     cv2.namedWindow(window_name_canny, cv2.WINDOW_NORMAL)
     cv2.namedWindow(window_name_clahe, cv2.WINDOW_NORMAL)
 
-    largura = 800 
+    largura = JANELA_CONFIG["LARGURA_RESIZE"] 
     altura = int(largura * (camera.height / camera.width))
     
     dim = (largura, altura) 
@@ -39,6 +41,8 @@ def main():
     cv2.resizeWindow(window_name_normal, largura, altura)
     cv2.resizeWindow(window_name_canny, largura, altura)
     cv2.resizeWindow(window_name_clahe, largura, altura)
+
+    print(f"Iniciando modo de detecção. Alvo: {ALVO_SHAPE}. Pressione 'q' para sair.")
 
 
     print(f"Iniciando modo de detecção. Alvo: {ALVO_SHAPE}. Pressione 'q' para sair.")
