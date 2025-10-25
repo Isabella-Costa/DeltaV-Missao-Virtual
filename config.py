@@ -9,7 +9,7 @@ PRE_PROCESSAMENTO = {
 
 # Parâmetros de filtragem de contornos
 FILTRAGEM_CONTORNOS = {
-    "contour_epsilon": 0.009,
+    "contour_epsilon": 0.02,
     "min_area": 500,
     "min_aspect_ratio": 0.95,
     "max_aspect_ratio": 1.2
@@ -43,8 +43,8 @@ FILTRO_KALMAN = {
 SOLIDEZ = {
     "star_min": 0.45,
     "star_max": 0.6,
-    "cross_min": 0.6,
-    "cross_max": 0.7,
+    "cross_min": 0.7,
+    "cross_max": 0.9,
     "circularidade_min": 0.85
 }
 # Parâmetros de Janela e Visualização

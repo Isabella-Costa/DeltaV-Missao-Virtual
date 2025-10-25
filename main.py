@@ -130,10 +130,10 @@ def main():
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
         
         # Kalman 
-        if predicted_center:
+        #if predicted_center:
             # Centro predito (verde)
-            cv2.circle(frame_com_desenho, predicted_center, 10, (0, 255, 0), 2)
-            cv2.putText(frame_com_desenho, f"{ALVO_SHAPE} Predito (Kalman)", (predicted_center[0] + 15, predicted_center[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            #cv2.circle(frame_com_desenho, predicted_center, 10, (0, 255, 0), 2)
+            #cv2.putText(frame_com_desenho, f"{ALVO_SHAPE} Predito (Kalman)", (predicted_center[0] + 15, predicted_center[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         # Mostra os resultados
         cv2.imshow(f"Visao do Drone - Procurando por [{ALVO_SHAPE}]", frame_com_desenho)

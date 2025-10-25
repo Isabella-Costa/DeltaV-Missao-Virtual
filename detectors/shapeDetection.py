@@ -132,16 +132,15 @@ class ShapeDetector:
 
                                 #print(f"Forma Côncava: Defeitos={num_defects}, Solidez={solidez:.2f}")
 
-                                # ESTRELA
-                                if (5 <= num_defects <= 11):
+                                if (4 <= num_defects <= 10):
                                     # ESTRELA
                                     if self.solidez_star_min < solidez < self.solidez_star_max:
                                         shape_data.update({'label': 'Estrela', 'contour': cnt})
                                         shapes_detectados.append(shape_data)
                                         continue
-
+                                        
                                     # CRUZ
-                                    elif  self.solidez_cross_min < solidez < self.solidez_cross_max:
+                                    if  self.solidez_cross_min < solidez < self.solidez_cross_max:
                                         shape_data.update({'label': 'Cruz', 'contour': cnt})
                                         shapes_detectados.append(shape_data)
                                         continue
