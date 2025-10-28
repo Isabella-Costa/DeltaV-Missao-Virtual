@@ -34,6 +34,11 @@ ANGULACAO_PENTAGONO_REG = {
     "upper_limit": 116, #Tolerância de 8°. 116° - 8°
 }
 
+ANGULACAO_HEXAGONO_REG = {
+    "lower_limit": 110, #Tolerância de 10°. 120 - 10
+    "upper_limit": 130, #Tolerância de 10°. 120° + 10°
+}
+
 # Parâmetros do filtro de Kalman
 FILTRO_KALMAN = {
     "uncertainty_magnitude": 0.03,
