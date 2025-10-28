@@ -40,33 +40,22 @@ def velocidade(velocidade_x, velocidade_y, velocidade_z, duracao_s):
 def armar(drone):
     
     print("\n[ARM] Verificando se o drone está armável...")
-    while not drone.is_armable and not (evento_abortar_seguranca and evento_abortar_seguranca.is_set()):
+    while not drone.is_armable:
         print("  Aguardando drone ficar armável...")
         time.sleep(1)
-    if evento_abortar_seguranca and evento_abortar_seguranca.is_set(): return False
-    print("[ARM] Drone está armável.")
-
     print("[ARM] Definindo modo GUIDED e armando...")
     drone.mode = VehicleMode("GUIDED")
 
-    while drone.mode.name != 'GUIDED' and not (evento_abortar_seguranca and evento_abortar_seguranca.is_set()):
+    while drone.mode.name != 'GUIDED':
         print("  Aguardando modo GUIDED...")
         time.sleep(0.5)
-    if evento_abortar_seguranca and evento_abortar_seguranca.is_set(): return False
-
     drone.armed = True
     tempo_inicio = time.time()
 
-    while not drone.armed and (time.time() - tempo_inicio < 10) and not (evento_abortar_seguranca and evento_abortar_seguranca.is_set()):
+    while not drone.armed and (time.time() - tempo_inicio < 10):
         print("  Aguardando motores armarem...")
         time.sleep(0.5)
-    
-    if evento_abortar_seguranca and evento_abortar_seguranca.is_set():
-        if drone.armed:
-            drone.armed = False 
-            print("[ARM] Abortagem durante armamento. Drone desarmado.")
-        return False
-    
+     
     if not drone.armed:
         print("[ARM] ERRO: Falha ou timeout ao armar.")
         return False
@@ -88,13 +77,7 @@ def decolar(drone, altitude_alvo):
         return False
 
     tempo_inicio = time.time()
-    tempo_max_espera = 60 # segundos
-    while True:
-        if evento_abortar_seguranca and evento_abortar_seguranca.is_set():
-            print("[DECOLAR] Abortagem de segurança ativa durante decolagem.")
-            # Poderíamos tentar pousar aqui, mas para um aborto, é melhor apenas parar
-            return False
-        
+    tempo_max_espera = 60 # segundos  
         altitude_atual = drone.location.global_relative_frame.alt
         print(f"  [DECOLAR] Altitude: {altitude_atual:.1f} / {altitude_alvo:.1f}m")
         
@@ -174,3 +157,4 @@ def abortagem(evento):
         except Exception as e:
             print(f"[SEGURANCA] Erro no monitor de abortagem: {e}")
             break
+
