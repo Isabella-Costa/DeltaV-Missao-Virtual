@@ -39,5 +39,10 @@ elif estado=="vasculhar":
       print("drone se deslocando para frente em 1 metro por segundo por 1 segundo")
 # ----Centralizando----
 elif estado=="centralizando"
-
+  while True 
+    if abs(distancia_metros(drone.location.global_frame, distancia_visao())>0:
+      velocidade(0.5,0.5,0,1)
+    else:
+      estado="pousando"
+      break
     
