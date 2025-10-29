@@ -4,7 +4,7 @@ import threading
 import sys
 from dronekit import connect, VehicleMode, LocationGlobalRelative
 from pymavlink import mavutil
-import funcoes_controle.py
+from funcoes_controle.py import armar, decolar, 
 # --- Configurações Globais---
 STRING_CONEXAO = "udp:127.0.0.1:14550" 
 drone=STRING_CONEXÃO
@@ -52,13 +52,13 @@ elif estado=="pousando":
   if pousar(drone)==True:
     estado="decolar1"
 # ----decolando1----
-elif estado=="decolar1"
+elif estado=="decolar1":
   print("Decolando o drone")
   decolar(drone,3)
   if decolar(drone,3)==True:
     estado="rtl"
 # ----voltando para casa------
-elif estado=="rtl"
+elif estado=="rtl":
   print("voltando par casa")
   while not vehicle.mode.name == "RTL":
     print(" Aguardando a mudança de modo...")
