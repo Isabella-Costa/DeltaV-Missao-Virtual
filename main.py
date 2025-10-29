@@ -1,9 +1,6 @@
 import cv2
 import numpy as np
 
-from controle import armar_drone_simplificado, decolar_drone_simplificado
-from controle import pousar_drone_simplificado
-
 from detectors.shapeDetection import ShapeDetector, incializar_kalman
 from detectors.baseDetection import BaseDetector
 from config import JANELA_CONFIG
