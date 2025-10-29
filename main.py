@@ -118,7 +118,7 @@ def main():
         print("Drone Decolando para uma altitude de 5 metros")
         decolar(drone,5)
         if decolar(drone,5)==True:
-        estado="vasculhar"
+          estado="vasculhar"
     print("Iniciando modo de detecção (Drone em espera).")
     print(f"Iniciando modo de detecção. Alvo: {ALVO_SHAPE}. Pressione Ctrl+C para sair.")
     try:
@@ -174,7 +174,7 @@ def main():
                       print("Decolando o drone")
                       decolar(drone,5)
                       if decolar(drone,5)==True:
-                                estado="rtl"
+                          estado="rtl"
                     # ----voltando para casa------
                     elif estado=="rtl"
                       print("voltando par casa")
