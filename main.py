@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from dronekit import connect
 
 from controle import armar_drone_simplificado, decolar_drone_simplificado
 from controle import pousar_drone_simplificado
@@ -9,6 +8,19 @@ from detectors.shapeDetection import ShapeDetector, incializar_kalman
 from detectors.baseDetection import BaseDetector
 from config import JANELA_CONFIG
 from camera_sim import Camera
+
+import time
+import math
+import threading
+import sys
+from dronekit import connect, VehicleMode, LocationGlobalRelative
+from pymavlink import mavutil
+from funcoes_controle.py import velocidade, armar, decolar, distancia_metros, pousar
+ # --- Configurações Globais---
+STRING_CONEXAO = "udp:127.0.0.1:14550" 
+drone=STRING_CONEXÃO
+estado="armando"
+                
 
 
 def extrairCaracteristica(cnt, focal_length_pixels, known_width_cm):
@@ -95,11 +107,20 @@ def main():
     cam.start() 
     
     # --- Comandos do Drone ---
-    armar_drone_simplificado(drone)
-    decolar_drone_simplificado(drone, 5)
+      # ----Armando----
+    if estado == "armando":
+        print("Drone sendo armado")
+        armar(drone):
+        if drone.armed == True:
+        estado="decolando"
+        # ----Decolando----
+    elif estado=="decolando":
+        print("Drone Decolando para uma altitude de 5 metros")
+        decolar(drone,5)
+        if decolar(drone,5)==True:
+        estado="vasculhar"
     print("Iniciando modo de detecção (Drone em espera).")
     print(f"Iniciando modo de detecção. Alvo: {ALVO_SHAPE}. Pressione Ctrl+C para sair.")
-
     try:
         while True:
             # Frame original
@@ -134,18 +155,49 @@ def main():
                 dados_para_print.pop('contour', None) 
                 
                 print(f"DADOS DO ALVO: {dados_para_print}")
-
-
-                # -------------------------------------------
-
-                # MAQUINA DE ESTADOS AQUI ???
-                # -------------------------------------------
-
-
+                # --- Configurações Globais---
+                STRING_CONEXAO = "udp:127.0.0.1:14550" 
+                drone=STRING_CONEXÃO
+                estado="armando"
+                
+                    # ----Centralizando----
+                    elif estado=="centralizando"
+                      while True:
+                        if abs(distancia_metros(drone.location.global_frame, centro_alvo)>0.2:
+                          velocidade(0.5,0.5,0,1)
+                        else:
+                          estado="pousando"
+                          break
+                    # ----pousando-----
+                    elif estado=="pousando":
+                      print("Drone pousando")
+                      pousar(drone)
+                      if pousar(drone)==True:
+                        estado="decolar1"
+                    # ----decolando1----
+                    elif estado=="decolar1"
+                      print("Decolando o drone")
+                      decolar(drone,3)
+                      if decolar(drone,3)==True:
+                                estado="rtl"
+                    # ----voltando para casa------
+                    elif estado=="rtl"
+                      print("voltando par casa")
+                      while not vehicle.mode.name == "RTL":
+                        print(" Aguardando a mudança de modo...")
+                        time.sleep(1)
+                        print("Modo alterado para RTL com sucesso!")
+                        print("O veículo agora está retornando e pousando...")
+                        print("Aguardando o pouso...")
+                        vehicle.close()
+                        print("Conexão fechada.")
                 # Alvo encontrado, corrige o filtro
                 center_np = np.array([centro_alvo[0], centro_alvo[1]], np.float32)
                 kalman_filter.correct(center_np)
                 kalman_ativo = True
+            
+            elif len(alvos_encontrados) == 0:
+                
             
             if kalman_ativo:
                 prediction = kalman_filter.predict()
