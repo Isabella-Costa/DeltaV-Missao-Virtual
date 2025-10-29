@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-
 from config import PRE_PROCESSAMENTO, FILTRAGEM_CONTORNOS, DESENHO, ANGULACAO, ANGULACAO_PENTAGONO_REG, ANGULACAO_HEXAGONO_REG, FILTRO_KALMAN, SOLIDEZ
 
 
@@ -16,9 +15,8 @@ def incializar_kalman():
 
 # DETECÇÃO DE FORMAS 
 class ShapeDetector:
-
     def __init__(self):
-        # Pre-processamento (PIPELINE NOVA)
+        # Pre-processamento
         self.blur_ksize = PRE_PROCESSAMENTO.get("gaussian_blur_ksize", (5, 5))
         self.adaptive_thresh_blocksize = PRE_PROCESSAMENTO.get("adaptive_thresh_blocksize", 21)
         self.adaptive_thresh_C = PRE_PROCESSAMENTO.get("adaptive_thresh_C", 5)
@@ -60,8 +58,9 @@ class ShapeDetector:
             "Cruz": (128, 0, 128),
             "Estrela": (0, 255, 255),
             "Circulo": (0, 128, 128),
-            "Hexagono": (255, 255, 0) # Adicionei
+            "Hexagono": (255, 255, 0)
         }
+
 
     def angulo_cos(self, p1, p2, p3):
         v1 = p1 - p2
@@ -77,7 +76,7 @@ class ShapeDetector:
         return np.degrees(np.arccos(cosang))
 
     def detect(self, frame):
-        #PRÉ-PROCESSAMENTO (PIPELINE NOVA)
+        # ... (Pré-processamento, Morfologia, Contornos - tudo igual) ...
         frame_cinza = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         frame_suave = cv2.GaussianBlur(frame_cinza, self.blur_ksize, 0)
         binary_image = cv2.adaptiveThreshold(
@@ -86,23 +85,12 @@ class ShapeDetector:
             self.adaptive_thresh_blocksize, 
             self.adaptive_thresh_C
         )
-
-        # Combinação de Morfologia
-
-        # 1. Remove ruído ---- Usamos um kernel menor (ex: 3x3) para ruídos pequenos.
         kernel_abertura = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         binary_image_opened = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, kernel_abertura)
-
-        # 2. Fechamento: Fecha "buracos" (ruído 'pimenta') dentro dos objetos.
-        #    Usamos o kernel do config (ex: 5x5) para fechar buracos maiores.
         kernel_fechamento = cv2.getStructuringElement(cv2.MORPH_RECT, self.morph_kernel_size)
         binary_image_processed = cv2.morphologyEx(binary_image_opened, cv2.MORPH_CLOSE, kernel_fechamento)
         
-        # -----------------------------------------------------------------
-
-        # Contornos
         contornos, hierarquia = cv2.findContours(binary_image_processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
         shapes_detectados = [] 
 
         if hierarquia is None:
@@ -116,9 +104,7 @@ class ShapeDetector:
                 continue
 
             perimetro = cv2.arcLength(cnt, True)
-            if perimetro == 0: 
-                continue
-            
+            if perimetro == 0: continue
             M = cv2.moments(cnt)
             center = None
             if M["m00"] != 0:
@@ -129,6 +115,7 @@ class ShapeDetector:
             parent = hierarquia[i][3]
             child = hierarquia[i][2]
 
+            
             shape_data = {'center': center, 'area': area, 'label': 'Desconhecido'}
 
             hull = cv2.convexHull(cnt)
@@ -139,7 +126,7 @@ class ShapeDetector:
 
             # CÔNCAVO (Solidez baixa) -----------------------------------
             if solidez < self.solidez_cross_max: 
-                
+                # ... (lógica de estrela, cruz) ...
                 if len(cnt) > 20:
                     hull_indices = cv2.convexHull(cnt, returnPoints=False)
                     if hull_indices is not None and len(hull_indices) > 3:
@@ -147,13 +134,10 @@ class ShapeDetector:
                             defects = cv2.convexityDefects(cnt, hull_indices)
                             if defects is not None:
                                 num_defects = defects.shape[0]
-
-                                # ESTRELA 
                                 if (8 <= num_defects <= 11) and (self.solidez_star_min < solidez < self.solidez_star_max):
                                     shape_data.update({'label': 'Estrela', 'contour': cnt})
                                     shapes_detectados.append(shape_data)
                                     continue
-                                # CRUZ 
                                 elif (18 <= num_defects <= 22) and (self.solidez_cross_min < solidez < self.solidez_cross_max):
                                     shape_data.update({'label': 'Cruz', 'contour': cnt})
                                     shapes_detectados.append(shape_data)
@@ -174,26 +158,21 @@ class ShapeDetector:
                 approx = cv2.approxPolyDP(cnt, epsilon, True)
                 num_vertices = len(approx)
 
-                # Triangulo
                 if num_vertices == 3: 
                     if parent != -1 and child == -1: 
                         shape_data.update({'label': 'Triangulo', 'contour': approx})
                         shapes_detectados.append(shape_data)
-
-                # Quadrado
+                    
                 elif num_vertices == 4: 
                     angulos = [self.angulo_cos(approx[j][0], approx[(j+1)%4][0], approx[(j+2)%4][0]) for j in range(4)]
                     if all(self.quad_angle_min <= ang <= self.quad_angle_max for ang in angulos):
                         rect = cv2.minAreaRect(approx)
                         (w, h) = rect[1]
                         espectro_ratio = float(w) / h if h == 0 else (float(w) / h if w > h else float(h) / w)
-                        
                         if self.min_aspect_ratio <= espectro_ratio <= self.max_aspect_ratio:
                             if parent != -1 and child == -1: 
                                 shape_data.update({'label': 'Quadrilatero', 'contour': approx})
                                 shapes_detectados.append(shape_data) 
-
-                # Pentágono e Casa
                 elif num_vertices == 5: 
                     angulos = [self.angulo_cos(approx[j][0], approx[(j+1)%5][0], approx[(j+2)%5][0]) for j in range(5)]
                     if all(self.pent_angle_min <= ang <= self.pent_angle_max for ang in angulos):
@@ -201,8 +180,6 @@ class ShapeDetector:
                     else:
                         shape_data.update({'label': 'Casa', 'contour': approx}) 
                     shapes_detectados.append(shape_data)
-
-                # Hexagono
                 elif num_vertices == 6:
                     angulos = [self.angulo_cos(approx[j][0], approx[(j+1)%6][0], approx[(j+2)%6][0]) for j in range(6)]
                     if all (self.hex_angle_min <= ang <= self.hex_angle_max for ang in angulos):
@@ -211,13 +188,12 @@ class ShapeDetector:
                         espectro_ratio = float('inf')
                         if h != 0:
                             espectro_ratio = float(w) / h if w > h else float(h) / w
-
                         if self.min_aspect_ratio <= espectro_ratio <= self.max_aspect_ratio:
                             shape_data.update({'label': 'Hexagono', 'contour': approx})
                             shapes_detectados.append(shape_data)
                             continue
                         
-        print(f"figura encotrada {shapes_detectados}")
+        
         return shapes_detectados, binary_image_processed, frame_suave
 
     def draw(self, frame, shapes_detectados):
@@ -231,6 +207,8 @@ class ShapeDetector:
             center = shape['center']
             
             color = self.color_map.get(label, (255, 255, 255)) 
+            
+            # Texto é apenas label e área
             text = f"{label} - {int(area)}"
             
             x, y, _, _ = cv2.boundingRect(contour)
@@ -241,13 +219,11 @@ class ShapeDetector:
             else:
                 cv2.drawContours(frame, [contour], -1, color, 3)
             
+            # Posição do texto (y-10)
             cv2.putText(frame, text, (x, y - 10), self.font, self.font_scale, color, self.font_thickness)
             if center:
                 cv2.circle(frame, center, 5, self.center_color, -1)
 
         return frame
-    
-
-    #def extrairCaracteristica
 
 
