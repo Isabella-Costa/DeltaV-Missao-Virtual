@@ -148,6 +148,7 @@ def abortagem(evento):
             if caractere_entrada.lower() == 'q':
                 print("\n[SEGURANCA] Comando de abortagem 'q' recebido! Ativando evento de segurança.")
                 evento.set()
+                return True
                 break
             else:
                 print("[SEGURANCA] Comando inválido. Pressione 'q' para abortar.")
@@ -157,4 +158,5 @@ def abortagem(evento):
         except Exception as e:
             print(f"[SEGURANCA] Erro no monitor de abortagem: {e}")
             break
+
 
