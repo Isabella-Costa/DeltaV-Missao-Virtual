@@ -23,13 +23,14 @@ def detect_squares_in_frame(frame, center_x, center_y):
     )
 
     # Opcional: Fechamento morfológico
-    #kernel = np.ones((5, 5), np.uint8)
-    #binary_image = cv.morphologyEx(binary_image, cv.MORPH_CLOSE, kernel)
-
+    kernel = np.ones((5, 5), np.uint8)
+    binary_image = cv.morphologyEx(binary_image, cv.MORPH_CLOSE, kernel)
     contours, _ = cv.findContours(binary_image, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     contour_frame = cv.cvtColor(binary_image, cv.COLOR_GRAY2BGR)
 
-    figura_desejada = 'cruz'
+
+
+    figura_desejada = 'pentagono'
     found_figure = False
     figura = ''
     figure_contour = None

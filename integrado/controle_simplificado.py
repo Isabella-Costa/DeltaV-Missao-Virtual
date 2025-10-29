@@ -4,6 +4,8 @@ import threading
 from dronekit import connect, VehicleMode, LocationGlobalRelative
 from pymavlink import mavutil
 
+CONNECTION_STRING = "tcp:127.0.0.1:5760"
+
 def armar_drone_simplificado(drone, evento_abortar_seguranca=None):
     if evento_abortar_seguranca and evento_abortar_seguranca.is_set():
         print("[ARM] Abortagem de segurança ativa. Cancelando armamento.")
@@ -151,7 +153,7 @@ def pousar_drone_simplificado(drone, evento_abortar_seguranca=None):
 
         altitude_atual = drone.location.global_relative_frame.alt if drone.location.global_relative_frame else -1
         velocidade_vertical = drone.velocity[2] if drone.velocity else 0
-        a
+        
         if altitude_atual > 0.1:
             print(f"  [POUSO] Altitude: {altitude_atual:.1f}m, Velocidade vertical: {velocidade_vertical:.1f}m/s")
         else:
@@ -216,7 +218,7 @@ def ir_para_local(localização_alvo, groundspeed=CRUISE_GROUNDSPEED):
         time.sleep(1)
     return True
 
-def obter_metros_de_distância(alocalizção1, alocalização2):
+def get_distance_metres(alocalizção1, alocalização2):
     distancialat = alocalização2.lat - alocalizção1.lat
     distancialong = alocalização2.lon - alocalizção1.lon
-    return math.sqrt((distancialat*dlat) + (distancialong*dlong)) * 1.113195e5
+    return math.sqrt((distancialat**2) + (distancialong**2)) * 1.113195e5
