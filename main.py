@@ -24,7 +24,7 @@ elif estado=="decolando":
     estado="vasculhar"
 # ----vasculhando-----
 elif estado=="vasculhar":
-  if figura==True
+  if figura==True:
     estado=="centralizando"
   for i in range(9)
     if i % 2 ==0 and figura!=True:
@@ -38,7 +38,7 @@ elif estado=="vasculhar":
       velocidade(1,0,0,1)
       print("drone se deslocando para frente em 1 metro por segundo por 1 segundo")
 # ----Centralizando----
-elif estado=="centralizando"
+elif estado=="centralizando":
   while True:
     if abs(distancia_metros(drone.location.global_frame, distancia_visao())>0.2:
       velocidade(0.5,0.5,0,1)
