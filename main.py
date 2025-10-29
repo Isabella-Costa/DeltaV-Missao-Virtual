@@ -149,17 +149,12 @@ def main():
             if len(alvos_encontrados) > 0:
                 alvo_principal = alvos_encontrados[0] 
                 centro_alvo = alvo_principal['centro']
-                
+                estado="centralizando"
                 # --- DEBUG
                 dados_para_print = alvo_principal.copy()
                 dados_para_print.pop('contour', None) 
                 
                 print(f"DADOS DO ALVO: {dados_para_print}")
-                # --- Configurações Globais---
-                STRING_CONEXAO = "udp:127.0.0.1:14550" 
-                drone=STRING_CONEXÃO
-                estado="armando"
-                
                     # ----Centralizando----
                     elif estado=="centralizando"
                       while True:
@@ -177,8 +172,8 @@ def main():
                     # ----decolando1----
                     elif estado=="decolar1"
                       print("Decolando o drone")
-                      decolar(drone,3)
-                      if decolar(drone,3)==True:
+                      decolar(drone,5)
+                      if decolar(drone,5)==True:
                                 estado="rtl"
                     # ----voltando para casa------
                     elif estado=="rtl"
@@ -197,7 +192,23 @@ def main():
                 kalman_ativo = True
             
             elif len(alvos_encontrados) == 0:
-                
+                                # ----vasculhando-----
+                elif estado=="vasculhar":
+                  if len(alvo_encontrados)>0:
+                    estado=="centralizando"
+                  for i in range(9)
+                    if i % 2 ==0 and len(alvo_encontrados)>0:
+                      velocidade(0,-1,0,9)
+                      print("drone se deslocando para a esquerda em 1 metro por segundo por 9 segundos")
+                      velocidade(1,0,0,1)
+                      print("drone se deslocando para frente em 1 metro por segundo por 1 segundo")
+                      time.sleep(1)
+                    elif i % 2 !=0 and len(alvo_encontrados)>0:
+                      velocidade(0,1,0,9)
+                      print("drone se deslocando para a direita em 1 metro por segundo por 9 segundos")
+                      velocidade(1,0,0,1)
+                      print("drone se deslocando para frente em 1 metro por segundo por 1 segundo")
+                      time.sleep(1)
             
             if kalman_ativo:
                 prediction = kalman_filter.predict()
