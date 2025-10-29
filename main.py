@@ -4,7 +4,7 @@ import threading
 import sys
 from dronekit import connect, VehicleMode, LocationGlobalRelative
 from pymavlink import mavutil
-from funcoes_controle.py import armar, decolar, 
+from funcoes_controle.py import armar, decolar, pousar, distancia_metros
 # --- Configurações Globais---
 STRING_CONEXAO = "udp:127.0.0.1:14550" 
 drone=STRING_CONEXÃO
