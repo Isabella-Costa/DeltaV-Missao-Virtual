@@ -11,6 +11,8 @@ from detectors.baseDetection import BaseDetector
 from config import JANELA_CONFIG
 from camera_sim import Camera
 
+drone = connect("udp:127.0.0.1:14550", wait_ready = True)
+
 
 def extrairCaracteristica(cnt, focal_length_pixels, known_width_cm):
 
@@ -30,11 +32,36 @@ def extrairCaracteristica(cnt, focal_length_pixels, known_width_cm):
     
     return caracteristicas
 
+def processar_dados_alvo(shape_detectada, focal_length, known_width):
+    
+    # Extraindo informações necessarias
+    centro = shape_detectada.get('center')
+    area = shape_detectada.get('area')
+    contorno = shape_detectada.get('contour')
+    label = shape_detectada.get('label')
+
+    if contorno is None:
+        return None # Não processa sem contorno
+
+    caracteristicas_controle = extrairCaracteristica(contorno, focal_length, known_width)
+
+    # dicionário do alvo
+    dados_do_alvo = {
+        'label': label,
+        'centro': centro,
+        'area': area,
+        'distancia_cm': caracteristicas_controle.get('distancia_cm', 0.0),
+        'pixel_width': caracteristicas_controle.get('pixel_width', 0),
+        'bounding_box': caracteristicas_controle.get('bounding_box', (0,0,0,0))
+    }
+    
+    dados_completos = dados_do_alvo.copy()
+    dados_completos['contour'] = contorno
+    
+    return dados_completos
 
 
 def main():
-
-    drone = connect("udp:127.0.0.1:14550", wait_ready = True)
 
     # CONFIGURAÇÃO DO ALVO 
     ALVO_SHAPE = "Estrela" 
@@ -70,7 +97,7 @@ def main():
     
     # --- Comandos do Drone ---
     armar_drone_simplificado(drone)
-    decolar_drone_simplificado(drone, 5)
+    decolar_drone_simplificado(drone, 4)
     print("Iniciando modo de detecção (Drone em espera).")
     print(f"Iniciando modo de detecção. Alvo: {ALVO_SHAPE}. Pressione 'q' para sair.")
 
@@ -79,6 +106,7 @@ def main():
         ret, frame_original = cam.read() 
         if not ret:
             print("Frame não capturado ou vídeo terminou.")
+            ret, frame_original = cam.read()
             break
         
         # DETECÇÃO
@@ -163,10 +191,11 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    pousar_drone_simplificado(drone)
+    #pousar_drone_simplificado(drone)
     cam.stop()
     cv2.destroyAllWindows()
     print("Detecção encerrada.")
 
 if __name__ == "__main__":
     main()
+
