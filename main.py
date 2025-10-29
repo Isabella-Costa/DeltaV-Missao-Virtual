@@ -109,7 +109,7 @@ def main():
         print("Drone sendo armado")
         armar(drone):
         if drone.armed == True:
-        estado="decolando"
+          estado="decolando"
         # ----Decolando----
     elif estado=="decolando":
         print("Drone Decolando para uma altitude de 5 metros")
@@ -153,10 +153,10 @@ def main():
                 
                 print(f"DADOS DO ALVO: {dados_para_print}")
                     # ----Centralizando----
-                    elif estado=="centralizando"
+                    if estado=="centralizando"
                       while True:
                         if abs(distancia_metros(drone.location.global_frame, centro_alvo)>0.2:
-                          velocidade(0.5,0.5,0,1)
+                           velocidade(0.5,0.5,0,1)
                         else:
                           estado="pousando"
                           break
@@ -171,7 +171,7 @@ def main():
                       print("Decolando o drone")
                       decolar(drone,5)
                       if decolar(drone,5)==True:
-                          estado="rtl"
+                         estado="rtl"
                     # ----voltando para casa------
                     elif estado=="rtl"
                       print("voltando par casa")
@@ -190,7 +190,7 @@ def main():
             
             elif len(alvos_encontrados) == 0:
                                 # ----vasculhando-----
-                elif estado=="vasculhar":
+                if estado=="vasculhar":
                   if len(alvo_encontrados)>0:
                     estado=="centralizando"
                   for i in range(9)
