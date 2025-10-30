@@ -8,7 +8,7 @@ from controle import pousar_drone_simplificado
 
 from detectors.shapeDetection import ShapeDetector, incializar_kalman
 from detectors.baseDetection import BaseDetector
-from config import JANELA_CONFIG
+
 from camera_sim import Camera
 
 drone = connect("udp:127.0.0.1:14550", wait_ready = True)
@@ -82,7 +82,7 @@ def main():
     print(f"Distância Focal da Câmera (calculada): {FOCAL_LENGTH_PIXELS:.2f} pixels")
 
     #LARGURA DA IMG
-    KNOWN_WIDTH_CM = 8.0  # (cm) -
+    WIDTH_CM = 80.0  # (cm) -
 
 
 
@@ -106,7 +106,6 @@ def main():
         ret, frame_original = cam.read() 
         if not ret:
             print("Frame não capturado ou vídeo terminou.")
-            ret, frame_original = cam.read()
             break
         
         # DETECÇÃO
@@ -142,7 +141,8 @@ def main():
             centro_alvo = alvo_principal['center']
             distancia_alvo = alvo_principal['distancia_cm']
             
-            print(f"ALVO ENCONTRADO: Centro {centro_alvo} | Distância: {distancia_alvo:.1f} cm")
+            print(f"ALVO '{ALVO_SHAPE}' DETECTADO: Centro {centro_alvo} | Distância: {distancia_alvo:.1f} cm")
+
             # =========================================
             #
             # (Aqui entraria sua lógica de controle do drone 
@@ -155,6 +155,11 @@ def main():
             kalman_filter.correct(center_np)
             kalman_ativo = True
         
+        else:
+            # Informa que o alvo não foi encontrado 
+            print(f"Procurando alvo '{ALVO_SHAPE}'...")
+
+
         if kalman_ativo:
             # Sempre prevê o próximo passo
             prediction = kalman_filter.predict()
@@ -173,8 +178,7 @@ def main():
             x, y, _, _ = cv2.boundingRect(alvo['contour'])
             dist_text = f"Dist: {alvo['distancia_cm']:.1f} cm"
             
-            cv2.putText(frame_com_desenho, dist_text, (x, y - 30), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            cv2.putText(frame_com_desenho, dist_text, (x, y - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
         # Desenho a base 
         if base_data is not None:
@@ -182,8 +186,7 @@ def main():
             radius = base_data['radius']
             cv2.circle(frame_com_desenho, center, radius, (255, 0, 0), 3) # Círculo azul
             cv2.circle(frame_com_desenho, center, 5, (0, 0, 255), -1)     # Centro real (vermelho)
-            cv2.putText(frame_com_desenho, "BASE", (center[0] - 30, center[1] - radius - 10), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            cv2.putText(frame_com_desenho, "BASE", (center[0] - 30, center[1] - radius - 10),  cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
         
         
         cv2.imshow("RTSP Stream", frame_com_desenho) # Mostra o frame com desenhos
@@ -198,4 +201,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
