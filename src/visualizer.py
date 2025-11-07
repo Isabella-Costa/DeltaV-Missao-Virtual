@@ -3,7 +3,57 @@ import numpy as np
 from src.config import JANELA_CONFIG, DESENHO, COLOR_MAP
 
 class Visualizer:
+    """
+    Classe responsável por exibir, desenhar e atualizar visualizações gráficas
+    durante o processamento de imagem, incluindo formas detectadas, base e
+    predição do filtro de Kalman.
+
+    Essa classe gerencia diversas janelas do OpenCV, realizando o redimensionamento
+    proporcional das imagens e desenha as informações visuais sobre os frames, contornos, centros e rótulos de objetos.
+
+    Atributos
+    ----------
+    font : int
+        Tipo de fonte usada para o texto.
+    font_scale : float
+        Escala da fonte.
+    font_thickness : int
+        Espessura da fonte.
+    center_color : tuple[int, int, int]
+        Cor usada para desenhar o centro das formas (BGR).
+    prediction_color : tuple[int, int, int]
+        Cor usada para desenhar a predição do Kalman (BGR).
+    color_map : dict
+        Dicionário que associa rótulos de formas a cores.
+    main_window : str
+        Nome da janela principal.
+    canny_window : str
+        Nome da janela de visualização da detecção de bordas (Canny).
+    clahe_window : str
+        Nome da janela de visualização da equalização de contraste (CLAHE).
+    resize_width : int
+        Largura padrão de redimensionamento das janelas.
+    resize_height : int | None
+        Altura proporcional calculada com base no primeiro frame.
+    """
+
     def __init__(self, target_label):
+        """
+        Inicializa o objeto Visualizer, do qual configura janelas de exibição,
+        parâmetros de fonte e cores, e o mapeamento de cores de acordo com
+        o rótulo do alvo.
+
+        Parâmetros
+        ----------
+        target_label : str
+            Rótulo (nome) do alvo rastreado, usado para identificar a janela principal.
+        O que essa função faz:
+        ----------------------
+        - Define fontes, tamanhos e cores dos textos e desenhos.
+        - Cria as janelas que serão abertas na tela.
+        - Define a largura padrão de exibição e calcula a altura proporcional
+          com base na imagem recebida.
+        """
         self.font = DESENHO.get("font", cv2.FONT_HERSHEY_SIMPLEX)
         self.font_scale = DESENHO.get("font_scale", 0.7)
         self.font_thickness = DESENHO.get("font_thickness", 2)
@@ -25,7 +75,13 @@ class Visualizer:
         self.resize_height = None # Será calculado no primeiro frame
 
     def _calcula_altura(self, frame_height, frame_width):
-        """Calcula a altura de redimensionamento mantendo a proporção."""
+        """
+        Calcula a altura de redimensionamento mantendo a proporção.
+        Quando a imagem é exibida menor na tela, é importante **manter a proporção**
+        (ou seja, não “alongar” ou “achatar” a imagem). Esta função faz exatamente isso.
+
+        Ela também ajusta automaticamente o tamanho das janelas de exibição.
+        """
         if self.resize_height is None:
             self.resize_height = int(self.resize_width * (frame_height / frame_width))
             
@@ -38,7 +94,25 @@ class Visualizer:
         return (self.resize_width, self.resize_height)
 
     def _draw_shape(self, frame, shape, scale_x=1.0, scale_y=1.0):
-        """Desenha uma única forma, o seu centro e o seu rótulo."""
+        """
+        Desenha uma única forma, o seu centro e o seu rótulo.
+        Desenha uma forma (ex: círculo, quadrado, triângulo) detectada na imagem.
+
+        Parâmetros:
+        -------------
+        frame : ndarray
+            A imagem em que será desenhado o contorno.
+        shape : dict
+            Contém as informações da forma (contorno, área, centro, rótulo, etc.).
+        scale_x, scale_y : float
+            Usados para ajustar a posição e tamanho ao redimensionar a imagem.
+
+        O que desenha:
+        ---------------
+        - O contorno da forma.
+        - O nome e a área aproximada.
+        - O ponto central da forma.
+        """
         label = shape.get('label', 'Desconhecido')
         if label == 'Desconhecido':
             return
@@ -79,7 +153,17 @@ class Visualizer:
 
     # Adicionado scale_x e scale_y 
     def _draw_base(self, frame, base_data, scale_x=1.0, scale_y=1.0):
-        """Desenha a 'BASE' (círculo azul) de forma especial."""
+        """
+        Desenha a 'BASE' (círculo azul) de forma especial.
+        Parâmetros:
+        ------------
+        frame : ndarray
+            Imagem em que o círculo será desenhado.
+        base_data : dict
+            Dados da base (posição e raio).
+        scale_x, scale_y : float
+            Ajustes de tamanho e posição.
+        """
         if base_data is None:
             return
             
@@ -98,7 +182,12 @@ class Visualizer:
 
     # Adicionado scale_x e scale_y 
     def _draw_kalman_prediction(self, frame, prediction, target_label, scale_x=1.0, scale_y=1.0):
-        """Desenha o círculo de previsão do Kalman."""
+        """
+        Desenha o círculo de previsão do Kalman.
+
+        O círculo desenhado mostra onde o sistema acredita que o objeto estará,
+        mesmo que ele não esteja visível na imagem atual.
+        """
         if prediction:
             # Escala a predição 
             pred_scaled = (int(prediction[0] * scale_x), int(prediction[1] * scale_y))
@@ -109,7 +198,25 @@ class Visualizer:
                         self.font, 0.5, self.prediction_color, self.font_thickness)
 
     def display_frame(self, frame_original, canny_img, clahe_img, all_shapes, base_data, prediction, target_label):
-        """Redimensiona, desenha tudo e mostra todas as janelas."""
+        """
+        Exibe todas as janelas do sistema e desenha as informações na tela.
+
+        O que aparece:
+        ---------------
+        - Janela principal: mostra a imagem original com as formas desenhadas.
+        - Canny: exibe o resultado da detecção de bordas.
+        - CLAHE: mostra a imagem com o contraste ajustado.
+
+        Etapas do processo:
+        --------------------
+        1. Redimensiona todas as imagens para caber na tela.
+        2. Calcula a proporção entre tamanho original e exibido.
+        3. Desenha todas as formas detectadas.
+        4. Desenha a base azul.
+        5. Desenha a previsão de posição do Kalman.
+        6. Mostra as três janelas simultaneamente.
+        
+        """
         
         # Pega as dimensões originais
         h_orig, w_orig = frame_original.shape[:2]
