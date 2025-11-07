@@ -6,7 +6,10 @@ from dronekit import connect, VehicleMode, LocationGlobalRelative
 from pymavlink import mavutil
 
 # --- Configurações Globais---
-STRING_CONEXAO = "udp:127.0.0.1:14550" 
+STRING_CONEXAO = "udp:127.0.0.1:14550"
+veiculo = None
+# CORREÇÃO 1: Definir o evento de segurança globalmente
+evento_abortar_seguranca = threading.Event()
 
 # --- Funções Auxiliares ---
 
@@ -17,8 +20,8 @@ def distancia_metros(local_1, local_2):
 
 def velocidade(velocidade_x, velocidade_y, velocidade_z, duracao_s):
     mensagem = veiculo.message_factory.set_position_target_local_ned_encode(
-        0,       # time_boot_ms (not used)
-        0, 0,    # target system, target component
+        0,      # time_boot_ms (not used)
+        0, 0,   # target system, target component
         mavutil.mavlink.MAV_FRAME_BODY_NED, # frame
         0b0000111111000111, # type_mask (only speeds enabled)
         0, 0, 0, # x, y, z positions (not used)
@@ -54,7 +57,7 @@ def armar(drone):
     while not drone.armed and (time.time() - tempo_inicio < 10):
         print("  Aguardando motores armarem...")
         time.sleep(0.5)
-     
+        
     if not drone.armed:
         print("[ARM] ERRO: Falha ou timeout ao armar.")
         return False
@@ -77,12 +80,15 @@ def decolar(drone, altitude_alvo):
 
     tempo_inicio = time.time()
     tempo_max_espera = 60 # segundos  
+    
+    # CORREÇÃO 2: Adicionar o loop 'while' que faltava
+    while True: 
         altitude_atual = drone.location.global_relative_frame.alt
         print(f"  [DECOLAR] Altitude: {altitude_atual:.1f} / {altitude_alvo:.1f}m")
         
         if altitude_atual >= altitude_alvo * 0.95: # 95% da altitude alvo
             print(f"[DECOLAR] Altitude alvo ({altitude_alvo:.1f}m) alcançada.")
-            break
+            break # Agora o 'break' está dentro de um loop
         
         if (time.time() - tempo_inicio) > tempo_max_espera:
             print(f"[DECOLAR] ERRO: Timeout ({tempo_max_espera}s) na decolagem.")
@@ -110,7 +116,8 @@ def pousar(drone):
     tempo_max_espera = 180 # segundos
     
     while drone.armed: # O drone desarma automaticamente ao pousar em modo LAND
-        if evento_abortar_seguranca and evento_abortar_seguranca.is_set():
+        # CORREÇÃO 3: Simplificado o 'if'
+        if evento_abortar_seguranca.is_set():
             print("[POUSO] Abortagem de segurança ativa durante o pouso.")
             # Para abortar um pouso, o ideal seria mudar para GUIDED e subir, mas para simplificar, apenas retornamos.
             # Em um cenário real, você adicionaria lógica para transicionar para um estado seguro.
@@ -148,7 +155,7 @@ def abortagem(evento):
                 print("\n[SEGURANCA] Comando de abortagem 'q' recebido! Ativando evento de segurança.")
                 evento.set()
                 return True
-                break
+                # CORREÇÃO 4: 'break' removido por ser inalcançável após 'return'
             else:
                 print("[SEGURANCA] Comando inválido. Pressione 'q' para abortar.")
         except EOFError:
@@ -157,4 +164,3 @@ def abortagem(evento):
         except Exception as e:
             print(f"[SEGURANCA] Erro no monitor de abortagem: {e}")
             break
-
