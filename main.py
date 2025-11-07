@@ -12,11 +12,10 @@ import threading
 import sys
 from dronekit import connect, VehicleMode, LocationGlobalRelative
 from pymavlink import mavutil
-from funcoes_controle.py import velocidade, armar, decolar, distancia_metros, pousar
+from funcoes_controle import velocidade, armar, decolar, distancia_metros, pousar
  # --- Configurações Globais---
 STRING_CONEXAO = "udp:127.0.0.1:14550" 
-drone=STRING_CONEXÃO
-estado="armando"
+drone=STRING_CONEXAO
                 
 
 
@@ -73,7 +72,7 @@ def main():
     drone = connect("udp:127.0.0.1:14550", wait_ready = True)
 
     # CONFIGURAÇÃO DO ALVO 
-    ALVO_SHAPE = "Quadrilatero" 
+    ALVO_SHAPE = "Estrela" 
 
     try:
         cam = Camera()
@@ -153,36 +152,36 @@ def main():
                 
                 print(f"DADOS DO ALVO: {dados_para_print}")
                     # ----Centralizando----
-                    if estado=="centralizando":
+                if estado=="centralizando":
                       while True:
-                        if abs(distancia_metros(drone.location.global_frame, centro_alvo)>0.2:
+                        if abs(distancia_metros(drone.location.global_frame, centro_alvo))>0.2:
                            velocidade(0.5,0.5,0,1)
                         else:
                           estado="pousando"
                           break
                     # ----pousando-----
-                    elif estado=="pousando":
-                      print("Drone pousando")
-                      pousar(drone)
-                      if pousar(drone)==True:
+                elif estado=="pousando":
+                    print("Drone pousando")
+                    pousar(drone)
+                    if pousar(drone)==True:
                         estado="decolar1"
-                    # ----decolando1----
-                    elif estado=="decolar1":
-                      print("Decolando o drone")
-                      decolar(drone,5)
-                      if decolar(drone,5)==True:
-                         estado="rtl"
-                    # ----voltando para casa------
-                    elif estado=="rtl":
-                      print("voltando par casa")
-                      while not vehicle.mode.name == "RTL":
+                # ----decolando1----
+                elif estado=="decolar1":
+                    print("Decolando o drone")
+                    decolar(drone,5)
+                    if decolar(drone,5)==True:
+                        estado="rtl"
+                # ----voltando para casa------
+                elif estado=="rtl":
+                    print("voltando par casa")
+                    while not drone.mode.name == "RTL":
                         print(" Aguardando a mudança de modo...")
-                        time.sleep(1)
-                        print("Modo alterado para RTL com sucesso!")
-                        print("O veículo agora está retornando e pousando...")
-                        print("Aguardando o pouso...")
-                        vehicle.close()
-                        print("Conexão fechada.")
+                    time.sleep(1)
+                    print("Modo alterado para RTL com sucesso!")
+                    print("O veículo agora está retornando e pousando...")
+                    print("Aguardando o pouso...")
+                    drone.close()
+                    print("Conexão fechada.")
                 # Alvo encontrado, corrige o filtro
                 center_np = np.array([centro_alvo[0], centro_alvo[1]], np.float32)
                 kalman_filter.correct(center_np)
@@ -191,21 +190,21 @@ def main():
             elif len(alvos_encontrados) == 0:
                                 # ----vasculhando-----
                 if estado=="vasculhar":
-                 if len(alvo_encontrados)>0:
+                 if len(alvos_encontrados)>0:
                      estado=="centralizando"
-                 for i in range(9)
-                   if i % 2 ==0 and len(alvo_encontrados)>0:
+                 for i in range(9):
+                   if i % 2 ==0 and len(alvos_encontrados) == 0:
                      velocidade(0,-1,0,9)
                      print("drone se deslocando para a esquerda em 1 metro por segundo por 9 segundos")
                      velocidade(1,0,0,1)
                      print("drone se deslocando para frente em 1 metro por segundo por 1 segundo")
-                     time.sleep(1)
-                   elif i % 2 !=0 and len(alvo_encontrados)>0:
+                     time.sleep(3)
+                   elif i % 2 !=0 and len(alvos_encontrados) == 0:
                       velocidade(0,1,0,9)
                       print("drone se deslocando para a direita em 1 metro por segundo por 9 segundos")
                       velocidade(1,0,0,1)
                       print("drone se deslocando para frente em 1 metro por segundo por 1 segundo")
-                      time.sleep(1)
+                      time.sleep(3)
             
             if kalman_ativo:
                 prediction = kalman_filter.predict()
