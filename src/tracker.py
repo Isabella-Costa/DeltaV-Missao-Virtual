@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from config import FILTRO_KALMAN
+from src.config import FILTRO_KALMAN
 
 class Tracker:
     def init(self):

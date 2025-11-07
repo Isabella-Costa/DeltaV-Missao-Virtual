@@ -1,6 +1,6 @@
 import cv2
 import numpy as np 
-from config import JANELA_CONFIG, DESENHO, COLOR_MAP
+from src.config import JANELA_CONFIG, DESENHO, COLOR_MAP
 
 class Visualizer:
     def __init__(self, target_label):
