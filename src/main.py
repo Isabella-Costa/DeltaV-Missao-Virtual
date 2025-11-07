@@ -3,16 +3,12 @@ import numpy as np
 
 from detectors.shapeDetection import ShapeDetector, incializar_kalman
 from detectors.baseDetection import BaseDetector
-from config import JANELA_CONFIG
-from camera_sim import Camera
+from src.capture.camera_sim import Camera
 
 import time
-import math
-import threading
-import sys
 from dronekit import connect, VehicleMode, LocationGlobalRelative
 from pymavlink import mavutil
-from funcoes_controle import velocidade, armar, decolar, distancia_metros, pousar
+from src.controle import velocidade, armar, decolar, distancia_metros, pousar
  # --- Configurações Globais---
 STRING_CONEXAO = "udp:127.0.0.1:14550" 
 drone=STRING_CONEXAO
