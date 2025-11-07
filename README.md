@@ -62,17 +62,17 @@ Baixar e Extrair o Código-Fonte
 cd ~
 wget https://www.python.org/ftp/python/3.10.12/Python-3.10.12.tgz
 tar -xf Python-3.10.12.tgz
-```
+
 
 Compilar o Python
-```
+
 cd Python-3.10.12
 ./configure --enable-optimizations
 make -j $(nproc)
-```
+
 
 Instalar e Verificar
-``` 
+
 sudo make altinstall
 python3.10 --version
 💡 Nota: É possível usar o pyenv como alternativa para gerenciar múltiplas versões do Python.
@@ -86,31 +86,26 @@ O ArduPilot é o "cérebro" do drone durante a simulação.
 # Clonar o repositório do ArduPilot
 git clone https://github.com/ArduPilot/ardupilot.git
 cd ardupilot
-```
+
 
 Inicializar e atualizar submódulos
-```
 git submodule update --init --recursive
-```
+
 Instalar pré-requisitos
-```
 ./Tools/environment_install/install-prereqs-ubuntu.sh -y
-```
 
 Recarregar o perfil
-```
 source ~/.profile
-```
+
 
 Ativar o ambiente virtual criado pelo ArduPilot
-```
 source $HOME/venv-ardupilot/bin/activate
-```
+
 
 Instalar bibliotecas adicionais
-```
 pip install dronekit dronekit-sitl empy==3.3.4
 ```
+
 4. Instalação do Webots (Simulador)
 ```
 # Instale o Webots (baixe o arquivo .deb no site oficial)
@@ -118,33 +113,24 @@ sudo apt install ./webots_2023b_amd64.deb
 ```
 
 5. Instalação da Câmera (Mediamtx RTSP Server)
-```
 O Mediamtx cria um stream RTSP compatível com o cv2.VideoCapture() do OpenCV.
 
-```
 Baixe a versão mais recente no GitHub do Mediamtx
-```
 wget https://github.com/bluenviron/mediamtx/releases/download/v1.8.1/mediamtx_v1.8.1_linux_amd64.tar.gz
 ```
 Extraia o arquivo
-```
 tar -xvzf mediamtx_v1.8.1_linux_amd64.tar.gz
-```
+
 Mova o executável para o PATH do sistema
-```
 sudo mv mediamtx /usr/local/bin/
-```
+
 Crie diretório de configuração
-```
 sudo mkdir -p /usr/local/etc/
-```
+
 Mova o arquivo de configuração
-```
 sudo mv mediamtx.yml /usr/local/etc/
-```
 
 Para executar o servidor:
-```
 mediamtx
 ```
 6. Instalação do VS Code (IDE)
