@@ -157,10 +157,10 @@ source .venv/bin/activate
 
 ## 🐍  Instale as dependências do projeto
 ```
-import numpy as np
-import cv2
-from dronekit import connect, VehicleMode, LocationGlobalRelative
-from pymavlink import mavutil
+    pip install numpy
+    pip install opencv-python
+    pip install dronekit
+    pip install pymavlink
 ```
 No VS Code, selecione o interpretador correto:
 ```
