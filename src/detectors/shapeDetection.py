@@ -5,6 +5,13 @@ from src.config import PRE_PROCESSAMENTO, FILTRAGEM_CONTORNOS, DESENHO, ANGULACA
 
 # FUNÇÃO KALMAN 
 def incializar_kalman():
+    """
+    Cria e configura um filtro de Kalman, do qual vai ser usado para prever uma futura posição
+    de um objeto com base em movimentos anteriores.
+
+    Retorna:
+        kf (cv2.KalmanFilter): Filtro de Kalman configurado.
+    """
     kf = cv2.KalmanFilter(4, 2)
     kf.transitionMatrix = np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32)
     kf.measurementMatrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0]], np.float32)
@@ -15,7 +22,19 @@ def incializar_kalman():
 
 # DETECÇÃO DE FORMAS 
 class ShapeDetector:
+     """
+    Classe responsável na detecção de formas geométricas (como triângulos, quadrados,
+    pentágonos, estrelas, cruzes, círculos, etc.) na imagem capturada pela câmera.
+
+    Etapas do processo a seguir:
+      - Pré-processamento da imagem (filtros e limiarização);
+      - Identificação e filtragem de contornos;
+      - Análise de propriedades geométricas (ângulos, área, solidez);
+      - Classificação do formato identificado;
+      - Desenho dos resultados sobre a imagem original.
+    """
     def __init__(self):
+        """Ocorre a inicialização dos parâmetros do detector tendo em vista as configurações do arquivo config.py (dicionário)."""
         # Pre-processamento
         self.blur_ksize = PRE_PROCESSAMENTO.get("gaussian_blur_ksize", (5, 5))
         self.adaptive_thresh_blocksize = PRE_PROCESSAMENTO.get("adaptive_thresh_blocksize", 21)
@@ -63,6 +82,16 @@ class ShapeDetector:
 
 
     def angulo_cos(self, p1, p2, p3):
+         """
+        Uma função que calcula o ângulo formado por três pontos (p1, p2, p3) usando produto escalar entre 2 vetores.
+
+        Argumentos:
+            p1, p2, p3 (np.ndarray): Pontos representando os vértices do ângulo dos quais serão usados
+            para montar os vetores (v1, v2) e montar seu ângulo.
+
+        Retorna:
+            float: Valor do ângulo em graus.
+        """
         v1 = p1 - p2
         v2 = p3 - p2
 
@@ -76,6 +105,21 @@ class ShapeDetector:
         return np.degrees(np.arccos(cosang))
 
     def detect(self, frame):
+        """
+        Detecta as formas geométricas presentes ao decorrer da detecção.
+
+        Dentro do processo acontece a:
+          - Conversão para escala de cinza e suavização;
+          - Limiarização adaptativa (threshold);
+          - Operações morfológicas para limpar ruídos;
+          - Análise de contornos e classificação de formas.
+
+        Argumentos:
+            frame (np.ndarray): Imagem de entrada.
+
+        Retorna:
+            tuple: (lista de formas detectadas, imagem binária, imagem suavizada)
+        """
         # ... (Pré-processamento, Morfologia, Contornos - tudo igual) ...
         frame_cinza = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         frame_suave = cv2.GaussianBlur(frame_cinza, self.blur_ksize, 0)
@@ -197,6 +241,18 @@ class ShapeDetector:
         return shapes_detectados, binary_image_processed, frame_suave
 
     def draw(self, frame, shapes_detectados):
+        """
+        Desenha as formas detectadas diretamente sobre a imagem original e seus contornos quando capturados.
+
+        Cada figura detectada tem seu destaque com determinada cor e rótulo indicando sua forma e área.
+
+        Argumentos:
+            frame (np.ndarray): Imagem original.
+            shapes_detectados (list): Lista de formas encontradas.
+
+        Retorna:
+            np.ndarray: Imagem com as formas desenhadas.
+        """
         for shape in shapes_detectados:
             label = shape.get('label', 'Desconhecido')
             if label == 'Desconhecido':
